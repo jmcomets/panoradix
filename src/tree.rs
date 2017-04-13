@@ -1,83 +1,34 @@
-use path::Path;
+pub type Tree<K, V> = Node<K, V>;
 
-pub struct Tree<P: Path, V> {
-    root: Node<P, V>,
-}
-
-impl<P: Path, V> Tree<P, V> {
-    pub fn new() -> Tree<P, V> {
-        Tree {
-            root: Node::empty(),
-        }
-    }
-
-    pub fn from_items<Items, T, U>(items: Items) -> Tree<P, V>
-        where Items: IntoIterator<Item=(T, U)>,
-              T: Into<P>,
-              U: Into<V>,
-    {
-        let mut tree = Tree::new();
-        for (t, u) in items {
-            tree.insert(t, u);
-        }
-        tree
-    }
-
-    pub fn insert<T, U>(&mut self, path: T, value: U)
-        where T: Into<P>,
-              U: Into<V>,
-    {
-        let path = path.into();
-        let value = value.into();
-        self.root.insert(&path, value);
-    }
-
-    pub fn get(&self, path: &P) -> Option<&V> {
-        self.root.get(path)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.root.is_empty()
-    }
-}
-
-struct Node<P, V> {
-    path: P,
+pub struct Node<K, V> {
+    key: K,
     value: Option<V>,
-    children: Vec<Box<Node<P, V>>>,
+    children: Vec<Box<Node<K, V>>>,
 }
 
-impl<P: Path, V> Node<P, V> {
-    fn empty() -> Node<P, V> {
+impl<K: Key, V> Node<K, V> {
+    pub fn new() -> Node<K, V> {
         Node {
-            path: P::default(),
+            key: K::default(),
             value: None,
             children: Vec::new(),
         }
     }
 
-    fn boxed(path: P, value: V) -> Box<Node<P, V>> {
-        Box::new(Node {
-            path: path,
-            value: Some(value),
-            children: Vec::new(),
-        })
+    pub fn is_empty(&self) -> bool {
+        self.key.is_empty() && self.children.iter().all(|n| n.is_empty())
     }
 
-    fn is_empty(&self) -> bool {
-        self.path.is_empty() && self.children.iter().all(|n| n.is_empty())
-    }
-
-    fn get(&self, path: &P) -> Option<&V> {
-        match self.search(path) {
+    pub fn get(&self, key: &K) -> Option<&V> {
+        match self.search(key) {
             NodeSearch::InChild(suffix, i) => self.children[i].get(&suffix),
             NodeSearch::Found(i)           => self.children[i].value.as_ref(),
             _                              => None,
         }
     }
 
-    fn insert(&mut self, path: &P, value: V) {
-        match self.search(path) {
+    pub fn insert(&mut self, key: &K, value: V) {
+        match self.search(key) {
             NodeSearch::InChild(suffix, i)   => {
                 let ref mut child = self.children[i];
                 child.insert(&suffix, value);
@@ -90,15 +41,23 @@ impl<P: Path, V> Node<P, V> {
         }
     }
 
-    fn search(&self, path: &P) -> NodeSearch<P> {
-        let suffix = self.path.suffix_with(path);
+    fn boxed(key: K, value: V) -> Box<Node<K, V>> {
+        Box::new(Node {
+            key: key,
+            value: Some(value),
+            children: Vec::new(),
+        })
+    }
+
+    fn search(&self, key: &K) -> NodeSearch<K> {
+        let suffix = suffix_with(&self.key, key);
         if suffix.is_empty() {
             return NodeSearch::NotFound
         }
 
-        // Note: this needs to be a &&P because we don't want to move the path (P) out of
+        // Note: this needs to be a &&K because we don't want to move the key (K) out of
         // context.
-        let search = self.children.binary_search_by_key(&(&suffix), |n| &n.path);
+        let search = self.children.binary_search_by_key(&(&suffix), |n| &n.key);
         match search {
             Ok(i) => NodeSearch::Found(i),
             Err(i) => {
@@ -107,8 +66,7 @@ impl<P: Path, V> Node<P, V> {
                 // left child
                 if i > 0 {
                     let ref child = self.children[i - 1];
-                    let child_has_common_prefix = child.path.has_common_prefix(&suffix);
-                    if child_has_common_prefix {
+                    if has_common_prefix(&child.key, &suffix) {
                         child_index = Some(i - 1);
                     }
                 }
@@ -116,8 +74,7 @@ impl<P: Path, V> Node<P, V> {
                 // right child
                 if i + 1 < self.children.len() {
                     let ref child = self.children[i + 1];
-                    let child_has_common_prefix = child.path.has_common_prefix(&suffix);
-                    if child_has_common_prefix {
+                    if has_common_prefix(&child.key, &suffix) {
                         child_index = Some(i + 1);
                     }
                 }
@@ -131,9 +88,96 @@ impl<P: Path, V> Node<P, V> {
     }
 }
 
-enum NodeSearch<P: Path> {
+enum NodeSearch<K: Key> {
     Found(usize),
-    InChild(P, usize),
-    CanAddToChildren(P, usize),
+    InChild(K, usize),
+    CanAddToChildren(K, usize),
     NotFound,
+}
+
+pub trait Key: Default + Eq + Ord {
+    fn is_empty(&self) -> bool;
+
+    fn get_prefix_and_suffix(&self, other: &Self) -> (Self, Self);
+}
+
+impl Key for String {
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    fn get_prefix_and_suffix(&self, other: &String) -> (String, String) {
+        let nb = self.chars()
+            .zip(other.chars())
+            .take_while(|&(a, b)| a == b)
+            .count();
+        if nb == 0 {
+            ("".to_string(), other.clone())
+        } else if nb < self.len() {
+            let (prefix, suffix) = self.split_at(nb);
+            (prefix.to_string(), suffix.to_string())
+        } else if nb < other.len() {
+            let (prefix, suffix) = other.split_at(nb);
+            (prefix.to_string(), suffix.to_string())
+        } else {
+            (self.clone(), "".to_string())
+        }
+    }
+}
+
+fn has_common_prefix<K: Key>(key: &K, other: &K) -> bool {
+    let (prefix, _) = key.get_prefix_and_suffix(other);
+    !prefix.is_empty()
+}
+
+fn suffix_with<K: Key>(key: &K, other: &K) -> K {
+    let (_, suffix) = key.get_prefix_and_suffix(other);
+    suffix
+}
+
+#[allow(dead_code)]
+fn has_common_suffix<K: Key>(key: &K, other: &K) -> bool {
+    let (_, suffix) = key.get_prefix_and_suffix(other);
+    !suffix.is_empty()
+}
+
+#[allow(dead_code)]
+fn prefix_with<K: Key>(key: &K, other: &K) -> K {
+    let (prefix, _) = key.get_prefix_and_suffix(other);
+    prefix
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_gets_the_right_common_prefix() {
+        let a = "a".to_string();
+        let abc = "abc".to_string();
+        let ac = "ac".to_string();
+        let b = "b".to_string();
+        let bc = "bc".to_string();
+        let c = "c".to_string();
+        assert_eq!(suffix_with(&a, &b), b);
+        assert_eq!(suffix_with(&a, &ac), c);
+        assert_eq!(suffix_with(&a, &abc), bc);
+    }
+
+    #[test]
+    fn it_handles_empty_strings() {
+        let a = "a".to_string();
+        let empty = "".to_string();
+        assert_eq!(suffix_with(&a, &empty), empty);
+        assert_eq!(suffix_with(&empty, &a), a);
+        assert_eq!(suffix_with(&empty, &empty), empty);
+    }
+
+    #[test]
+    fn it_says_if_it_has_a_common_suffix() {
+        let a = "a".to_string();
+        let d = "d".to_string();
+        assert!(!has_common_prefix(&a, &d));
+        assert!(!has_common_prefix(&d, &a));
+    }
 }

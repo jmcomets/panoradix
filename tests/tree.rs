@@ -2,67 +2,69 @@
 
 extern crate panoradix;
 
-use panoradix::Tree;
+use panoradix::RadixMap;
 
 #[test]
 fn it_can_be_created() {
-    let _: Tree<String, ()> = Tree::new();
+    let _: RadixMap<String, ()> = RadixMap::new();
 }
 
 #[test]
 fn it_ignores_empty_elements() {
-    let mut t: Tree<String, ()> = Tree::new();
-    t.insert("", ());
-    assert!(t.is_empty());
+    let mut map: RadixMap<String, ()> = RadixMap::new();
+    map.insert(&"".to_string(), ());
+    //map.insert("".to_string(), ());
+    //map.insert("", ());
+    assert!(map.is_empty());
 }
 
 #[test]
 fn it_accepts_an_element() {
-    let mut t: Tree<String, ()> = Tree::new();
-    t.insert("a", ());
-    assert!(!t.is_empty());
+    let mut map: RadixMap<String, ()> = RadixMap::new();
+    map.insert(&"a".to_string(), ());
+    assert!(!map.is_empty());
 }
 
 #[test]
 fn it_accepts_multiple_elements() {
-    let mut t: Tree<String, ()> = Tree::new();
-    t.insert("a", ());
-    t.insert("b", ());
-    t.insert("c", ());
-    t.insert("ac", ());
-    t.insert("ab", ());
-    assert!(!t.is_empty());
+    let mut map: RadixMap<String, ()> = RadixMap::new();
+    map.insert(&"a".to_string(), ());
+    map.insert(&"b".to_string(), ());
+    map.insert(&"c".to_string(), ());
+    map.insert(&"ac".to_string(), ());
+    map.insert(&"ab".to_string(), ());
+    assert!(!map.is_empty());
 }
 
 #[test]
 fn it_can_lookup_elements() {
-    let mut t: Tree<String, i32> = Tree::new();
-    t.insert("a", 0);
-    t.insert("ac", 1);
+    let mut map: RadixMap<String, i32> = RadixMap::new();
+    map.insert(&"a".to_string(), 0);
+    map.insert(&"ac".to_string(), 1);
 
-    let v = t.get(&"a".to_string());
+    let v = map.get(&"a".to_string());
     assert_eq!(v.map(|x| *x), Some(0));
 
-    let v = t.get(&"ac".to_string());
+    let v = map.get(&"ac".to_string());
     assert_eq!(v.map(|x| *x), Some(1));
 }
 
 #[test]
 fn it_can_be_built_from_multiple_elements() {
     let items: Vec<(String, ())> = vec![
-        ("c".to_string(), ()),
-        ("d".to_string(), ()),
+        ("a".to_string(),   ()),
+        ("ac".to_string(),  ()),
         ("acb".to_string(), ()),
-        ("b".to_string(), ()),
-        ("a".to_string(), ()),
-        ("ac".to_string(), ()),
+        ("b".to_string(),   ()),
+        ("c".to_string(),   ()),
+        ("d".to_string(),   ()),
     ];
 
-    let t: Tree<String, ()> = Tree::from_items(items.clone());
+    let map: RadixMap<String, ()> = RadixMap::from_items(items.clone());
 
     for (k, v) in items {
         let cloned_key = k.clone();
-        let found = t.get(&k).map(|x| *x);
+        let found = map.get(&k).map(|x| *x);
         assert_eq!((cloned_key, found), (k, Some(v)));
     }
 }

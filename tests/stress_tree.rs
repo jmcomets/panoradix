@@ -2,19 +2,19 @@
 
 extern crate panoradix;
 
-use panoradix::Tree;
+use panoradix::RadixMap;
 
 #[test]
 #[ignore]
 fn stress_test() {
-    let mut t: Tree<String, usize> = Tree::new();
+    let mut map: RadixMap<String, usize> = RadixMap::new();
 
     for &(word, n) in STRINGS.iter() {
-        t.insert(word.to_string(), n);
+        map.insert(&word.to_string(), n);
     }
 
     for &(word, n) in STRINGS.iter() {
-        let found_n = t.get(&word.to_string()).map(|x| *x);
+        let found_n = map.get(&word.to_string()).map(|x| *x);
         assert_eq!(found_n, Some(n));
     }
 }
