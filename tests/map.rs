@@ -6,12 +6,12 @@ use panoradix::RadixMap;
 
 #[test]
 fn it_can_be_created() {
-    let _: RadixMap<String, ()> = RadixMap::new();
+    let _: RadixMap<()> = RadixMap::new();
 }
 
 #[test]
 fn it_ignores_empty_elements() {
-    let mut map: RadixMap<String, ()> = RadixMap::new();
+    let mut map: RadixMap<()> = RadixMap::new();
     map.insert(&"".to_string(), ());
     //map.insert("".to_string(), ());
     //map.insert("", ());
@@ -20,14 +20,14 @@ fn it_ignores_empty_elements() {
 
 #[test]
 fn it_accepts_an_element() {
-    let mut map: RadixMap<String, ()> = RadixMap::new();
+    let mut map: RadixMap<()> = RadixMap::new();
     map.insert(&"a".to_string(), ());
     assert!(!map.is_empty());
 }
 
 #[test]
 fn it_accepts_multiple_elements() {
-    let mut map: RadixMap<String, ()> = RadixMap::new();
+    let mut map: RadixMap<()> = RadixMap::new();
     map.insert(&"a".to_string(), ());
     map.insert(&"b".to_string(), ());
     map.insert(&"c".to_string(), ());
@@ -38,7 +38,7 @@ fn it_accepts_multiple_elements() {
 
 #[test]
 fn it_can_lookup_elements() {
-    let mut map: RadixMap<String, i32> = RadixMap::new();
+    let mut map: RadixMap<i32> = RadixMap::new();
     map.insert(&"a".to_string(), 0);
     map.insert(&"ac".to_string(), 1);
 
@@ -51,7 +51,7 @@ fn it_can_lookup_elements() {
 
 #[test]
 fn it_can_be_built_from_multiple_elements() {
-    let items: Vec<(String, ())> = vec![
+    let items = vec![
         ("a".to_string(),   ()),
         ("ac".to_string(),  ()),
         ("acb".to_string(), ()),
@@ -60,7 +60,7 @@ fn it_can_be_built_from_multiple_elements() {
         ("d".to_string(),   ()),
     ];
 
-    let map: RadixMap<String, ()> = RadixMap::from_items(items.clone());
+    let map: RadixMap<()> = RadixMap::from_items(items.clone());
 
     for (k, v) in items {
         let cloned_key = k.clone();

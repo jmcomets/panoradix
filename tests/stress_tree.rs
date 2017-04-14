@@ -7,7 +7,7 @@ use panoradix::RadixMap;
 #[test]
 #[ignore]
 fn stress_test() {
-    let mut map: RadixMap<String, usize> = RadixMap::new();
+    let mut map: RadixMap<usize> = RadixMap::new();
 
     for &(word, n) in STRINGS.iter() {
         map.insert(&word.to_string(), n);

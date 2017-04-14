@@ -1,5 +1,5 @@
-pub use map::{RadixMap};
-pub use tree::Key as RadixPath;
+pub use map::RadixMap;
 
 mod map;
+
 mod tree;

@@ -1,30 +1,31 @@
-use tree::{Tree, Key};
+use tree::Tree;
 
-pub struct RadixMap<K: Key, V> {
-    tree: Tree<K, V>,
+pub struct RadixMap<V> {
+    tree: Tree<V>,
 }
 
-impl<K: Key, V> RadixMap<K, V> {
-    pub fn new() -> RadixMap<K, V> {
+impl<V> RadixMap<V> {
+    pub fn new() -> RadixMap<V> {
         RadixMap { tree: Tree::new() }
     }
 
-    pub fn from_items<It>(items: It) -> RadixMap<K, V>
+    pub fn from_items<It, K>(items: It) -> RadixMap<V>
         where It: IntoIterator<Item=(K, V)>,
+              K: AsRef<str>,
     {
         let mut tree = Tree::new();
         for (k, v) in items {
-            tree.insert(&k, v);
+            tree.insert(k.as_ref(), v);
         }
 
         RadixMap { tree: tree }
     }
 
-    pub fn insert(&mut self, key: &K, value: V) {
+    pub fn insert(&mut self, key: &str, value: V) {
         self.tree.insert(key, value);
     }
 
-    pub fn get(&self, key: &K) -> Option<&V> {
+    pub fn get(&self, key: &str) -> Option<&V> {
         self.tree.get(key)
     }
 
