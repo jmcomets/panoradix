@@ -1,6 +1,6 @@
 [package]
 name = "panoradix"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Jean-Marie Comets <jean.marie.comets@gmail.com>"]
 description = "A simple radix map/set implementation"
 license = "MIT"
