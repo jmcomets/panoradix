@@ -61,13 +61,10 @@ impl<V> Node<V> {
     }
 
     fn search_for_prefix<'a>(&self, key: &'a str) -> Option<(usize, PrefixCmp<'a>)> {
-        for (i, edge) in self.edges.iter().enumerate() {
-            if let Some(cmp) = cmp_prefix(&edge.prefix, key) {
-                return Some((i, cmp));
-            }
-        }
-
-        None
+        self.edges.iter()
+            .enumerate()
+            .flat_map(|(i, e)| e.cmp_prefix(key).map(|cmp| (i, cmp)))
+            .next()
     }
 }
 
@@ -119,6 +116,10 @@ impl<V> Edge<V> {
         }
         // finally, make sure the edges are sorted by prefix
         //self.node.edges.sort_by(|a, b| a.prefix.cmp(&b.prefix));
+    }
+
+    fn cmp_prefix<'a>(&self, key: &'a str) -> Option<PrefixCmp<'a>> {
+        cmp_prefix(&self.prefix, key)
     }
 }
 
