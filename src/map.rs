@@ -21,8 +21,8 @@ impl<V> RadixMap<V> {
         RadixMap { tree: tree }
     }
 
-    pub fn insert(&mut self, key: &str, value: V) {
-        self.tree.insert(key, value);
+    pub fn insert(&mut self, key: &str, value: V) -> Option<V> {
+        self.tree.insert(key, value)
     }
 
     pub fn get(&self, key: &str) -> Option<&V> {
@@ -31,5 +31,23 @@ impl<V> RadixMap<V> {
 
     pub fn is_empty(&self) -> bool {
         self.tree.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RadixMap;
+
+    #[test]
+    fn it_can_lookup_elements() {
+        let mut map: RadixMap<i32> = RadixMap::new();
+        map.insert("a", 0);
+        map.insert("ac", 1);
+
+        let v = map.get("a");
+        assert_eq!(v.map(|x| *x), Some(0));
+
+        let v = map.get("ac");
+        assert_eq!(v.map(|x| *x), Some(1));
     }
 }

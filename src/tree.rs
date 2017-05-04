@@ -1,118 +1,142 @@
+use std::mem;
+
 pub type Tree<V> = Node<V>;
 
 pub struct Node<V> {
-    prefix: String,
     value: Option<V>,
-    children: Vec<Box<Node<V>>>,
+    edges: Vec<Edge<V>>,
 }
 
 impl<V> Node<V> {
     pub fn new() -> Node<V> {
         Node {
-            prefix: String::default(),
             value: None,
-            children: Vec::new(),
+            edges: Vec::new(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.prefix.is_empty() && self.children.iter().all(|n| n.is_empty())
+        self.value.is_none() && self.edges.is_empty()
     }
 
     pub fn get(&self, key: &str) -> Option<&V> {
-        match self.search(key) {
-            NodeSearch::InChild(suffix, i) => self.children[i].get(&suffix),
-            NodeSearch::Found(i)           => self.children[i].value.as_ref(),
-            _                              => None,
-        }
-    }
-
-    pub fn insert(&mut self, key: &str, value: V) {
-        match self.search(key) {
-            NodeSearch::InChild(suffix, i)   => {
-                let ref mut child = self.children[i];
-                child.insert(&suffix, value);
-            },
-            NodeSearch::CanAddToChildren(suffix, i) => {
-                let node = Node::boxed(suffix, value);
-                self.children.insert(i, node);
-            },
-            NodeSearch::Found(_) | NodeSearch::NotFound => {}
-        }
-    }
-
-    fn boxed(prefix: String, value: V) -> Box<Node<V>> {
-        Box::new(Node {
-            prefix: prefix,
-            value: Some(value),
-            children: Vec::new(),
-        })
-    }
-
-    fn search(&self, key: &str) -> NodeSearch {
-        let suffix = get_suffix_between(&self.prefix, key);
-        if suffix.is_empty() {
-            return NodeSearch::NotFound
-        }
-
-        let search = self.children.binary_search_by_key(&(&suffix), |n| &n.prefix);
-        match search {
-            Ok(i) => NodeSearch::Found(i),
-            Err(i) => {
-                let mut child_index = None;
-
-                // left child
-                if i > 0 {
-                    let ref child = self.children[i - 1];
-                    if has_common_prefix(&child.prefix, &suffix) {
-                        child_index = Some(i - 1);
-                    }
-                }
-
-                // right child
-                if i + 1 < self.children.len() {
-                    let ref child = self.children[i + 1];
-                    if has_common_prefix(&child.prefix, &suffix) {
-                        child_index = Some(i + 1);
-                    }
-                }
-
-                match child_index {
-                    Some(i) => NodeSearch::InChild(suffix, i),
-                    None    => NodeSearch::CanAddToChildren(suffix, i),
-                }
+        if key.is_empty() {
+            self.value.as_ref()
+        } else {
+            if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
+                self.edges[i].node.get(suffix)
+            } else {
+                None
             }
         }
     }
+
+    pub fn insert(&mut self, key: &str, value: V) -> Option<V> {
+        if key.is_empty() {
+            let old_value = self.value.take();
+            self.value = Some(value);
+            old_value
+        } else {
+            if let Some((i, cmp)) = self.search_for_prefix(key) {
+                let ref mut edge = self.edges[i];
+                match cmp {
+                    // Full prefix: insert in the child
+                    PrefixCmp::Full(suffix) => {
+                        return edge.node.insert(suffix, value);
+                    },
+
+                    // Partial prefix: split the key and replace the edge's node with a new one
+                    // that holds both nodes to insert.
+                    PrefixCmp::Partial(i) => {
+                        edge.split_insert(i, key, value);
+                    },
+                };
+            } else {
+                // No match in edges: insert a new edge
+                self.edges.push(Edge::new(key.to_string(), Some(value)));
+            }
+
+            None
+        }
+    }
+
+    fn search_for_prefix<'a>(&self, key: &'a str) -> Option<(usize, PrefixCmp<'a>)> {
+        for (i, edge) in self.edges.iter().enumerate() {
+            if let Some(cmp) = cmp_prefix(&edge.prefix, key) {
+                return Some((i, cmp));
+            }
+        }
+
+        None
+    }
 }
 
-enum NodeSearch {
-    Found(usize),
-    InChild(String, usize),
-    CanAddToChildren(String, usize),
-    NotFound,
+struct Edge<V> {
+    prefix: String,
+    node: Box<Node<V>>,
 }
 
-fn has_common_prefix(first: &str, second: &str) -> bool {
-    first.chars().zip(second.chars())
-        .take_while(|&(ref a, ref b)| a == b)
-        .next().is_some()
+impl<V> Edge<V> {
+    fn new(prefix: String, value: Option<V>) -> Edge<V> {
+        let mut node = Box::new(Node::new());
+        node.value = value;
+
+        Edge {
+            prefix: prefix,
+            node: node,
+        }
+    }
+
+    fn split_insert(&mut self, i: usize, key: &str, value: V) {
+        let (prefix, (key_suffix, edge_suffix)) = {
+            let (prefix, key_suffix) = key.split_at(i);
+            let (_, edge_suffix) = self.prefix.split_at(i);
+
+            (prefix.to_string(), (key_suffix.to_string(), edge_suffix.to_string()))
+        };
+
+        // move out the value
+        let moved_value = self.node.value.take();
+
+        // create the two new edges
+        let mut moved_edge = Edge::new(edge_suffix, moved_value);
+        let new_edge = Edge::new(key_suffix, Some(value));
+
+        // assign the new prefix
+        self.prefix = prefix;
+
+        // move the old node's edges
+        let mut old_edges = &mut self.node.edges;
+        let mut new_edges = Vec::with_capacity(2);
+        mem::swap(old_edges, &mut new_edges);
+        moved_edge.node.edges = new_edges;
+        // and insert the two new edges
+        old_edges.push(moved_edge);
+        old_edges.push(new_edge);
+        // finally, make sure the edges are sorted by prefix
+        //old_edges.sort_by(|a, b| a.prefix.cmp(&b.prefix));
+    }
 }
 
-fn get_suffix_between(first: &str, second: &str) -> String {
-    let nb = first.chars()
-        .zip(second.chars())
+enum PrefixCmp<'a> {
+    Full(&'a str),
+    Partial(usize),
+}
+
+fn cmp_prefix<'a>(haystack: &str, needle: &'a str) -> Option<PrefixCmp<'a>> {
+    use self::PrefixCmp::*;
+
+    let nb = haystack.chars().zip(needle.chars())
         .take_while(|&(a, b)| a == b)
         .count();
     if nb == 0 {
-        second.to_string()
-    } else if nb < first.len() {
-        let (_, suffix) = first.split_at(nb);
-        suffix.to_string()
-    } else if nb < second.len() {
-        let (_, suffix) = second.split_at(nb);
-        suffix.to_string()
+        None
+    } else if nb < haystack.len() {
+        Some(Partial(nb))
+    } else if nb < needle.len() {
+        let (_, suffix) = needle.split_at(nb);
+        Some(Full(suffix))
     } else {
-        "".to_string()
+        Some(Full(""))
     }
 }
