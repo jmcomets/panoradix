@@ -95,26 +95,30 @@ impl<V> Edge<V> {
             (prefix.to_string(), (key_suffix.to_string(), edge_suffix.to_string()))
         };
 
-        // move out the value
-        let moved_value = self.node.value.take();
-
-        // create the two new edges
-        let mut moved_edge = Edge::new(edge_suffix, moved_value);
-        let new_edge = Edge::new(key_suffix, Some(value));
-
         // assign the new prefix
         self.prefix = prefix;
 
-        // move the old node's edges
-        let mut old_edges = &mut self.node.edges;
+        // move out the node's value for future use
+        let moved_value = self.node.value.take();
+
+        // swap the old and new node's edges
         let mut new_edges = Vec::with_capacity(2);
-        mem::swap(old_edges, &mut new_edges);
+        mem::swap(&mut self.node.edges, &mut new_edges);
+
+        let mut moved_edge = Edge::new(edge_suffix, moved_value);
         moved_edge.node.edges = new_edges;
-        // and insert the two new edges
-        old_edges.push(moved_edge);
-        old_edges.push(new_edge);
+
+        // update the parent edge: if the key is contained in the existing prefix, then it should
+        // be exactly equal to the prefix of the parent edge, hence the parent edge's value should
+        // be updated with the value we're trying to insert
+        self.node.edges.push(moved_edge);
+        if !key_suffix.is_empty() {
+            self.node.edges.push(Edge::new(key_suffix, Some(value)));
+        } else {
+            self.node.value = Some(value);
+        }
         // finally, make sure the edges are sorted by prefix
-        //old_edges.sort_by(|a, b| a.prefix.cmp(&b.prefix));
+        //self.node.edges.sort_by(|a, b| a.prefix.cmp(&b.prefix));
     }
 }
 
@@ -138,5 +142,22 @@ fn cmp_prefix<'a>(haystack: &str, needle: &'a str) -> Option<PrefixCmp<'a>> {
         Some(Full(suffix))
     } else {
         Some(Full(""))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Tree;
+
+    #[test]
+    fn it_handles_adding_existing_parts() {
+        let mut t = Tree::new();
+        t.insert("abc", "long");
+        t.insert("ab", "shorter");
+        t.insert("a", "short");
+
+        assert_eq!(t.get("abc").map(|s| s.to_string()), Some("long".to_string()));
+        assert_eq!(t.get("ab").map(|s| s.to_string()), Some("shorter".to_string()));
+        assert_eq!(t.get("a").map(|s| s.to_string()), Some("short".to_string()));
     }
 }
