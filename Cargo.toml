@@ -2,7 +2,12 @@
 name = "panoradix"
 version = "0.3.0"
 authors = ["Jean-Marie Comets <jean.marie.comets@gmail.com>"]
-description = "A simple radix map/set implementation"
+description = "A generic map and a set, both backed by a Radix tree."
 license = "MIT"
+homepage = "https://github.com/jmcomets/panoradix"
+repository = "https://github.com/jmcomets/panoradix"
+documentation = "https://docs.rs/panoradix"
+keywords = ["data-structure", "radix-tree"]
+categories = ["data-structure"]
 
 [dependencies]
