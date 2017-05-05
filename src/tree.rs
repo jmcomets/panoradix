@@ -1,4 +1,5 @@
 use std::mem;
+use std::slice;
 
 pub type Tree<V> = Node<V>;
 
@@ -58,6 +59,10 @@ impl<V> Node<V> {
 
             None
         }
+    }
+
+    pub fn iter<'a>(&'a self) -> Iter<'a, V> {
+        Iter::new(self.edges.iter())
     }
 
     fn search_for_prefix<'a>(&self, key: &'a str) -> Option<(usize, PrefixCmp<'a>)> {
@@ -146,6 +151,57 @@ fn cmp_prefix<'a>(haystack: &str, needle: &'a str) -> Option<PrefixCmp<'a>> {
     }
 }
 
+pub struct Iter<'a, V: 'a> {
+    edge_iter: slice::Iter<'a, Edge<V>>,
+    child_iter: Option<(&'a Edge<V>, Box<Iter<'a, V>>)>
+}
+
+impl<'a, V: 'a> Iter<'a, V> {
+    fn new(edge_iter: slice::Iter<'a, Edge<V>>) -> Iter<'a, V> {
+        Iter {
+            edge_iter: edge_iter,
+            child_iter: None,
+        }
+    }
+}
+
+impl<'a, V: 'a> Iterator for Iter<'a, V> {
+    type Item = (String, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.child_iter.is_none() {
+            self.child_iter = self.edge_iter.next().map(|edge| {
+                let next_iter = edge.node.iter();
+                (edge, Box::new(next_iter))
+            });
+        }
+
+        let mut reset_child_iter = false;
+        let mut ret = None;
+
+        if let Some((edge, ref mut next_it)) = self.child_iter {
+            if let Some((suffix, value)) = next_it.next() {
+                ret = Some((edge.prefix.to_string() + &suffix, value));
+            } else {
+                reset_child_iter = true;
+                if let Some(ref value) = edge.node.value {
+                    ret = Some((edge.prefix.to_string(), value));
+                }
+            }
+        }
+
+        if reset_child_iter {
+            self.child_iter = None;
+
+            if ret.is_none() {
+                return self.next();
+            }
+        }
+
+        ret
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Tree;
@@ -160,5 +216,33 @@ mod tests {
         assert_eq!(t.get("abc").map(|s| s.to_string()), Some("long".to_string()));
         assert_eq!(t.get("ab").map(|s| s.to_string()), Some("shorter".to_string()));
         assert_eq!(t.get("a").map(|s| s.to_string()), Some("short".to_string()));
+    }
+
+    #[test]
+    fn it_can_iterate_on_items() {
+        let items = vec![
+            ("abc", 0),
+            ("ac",  1),
+            ("bc",  2),
+            ("a",   3),
+            ("ab",  4),
+        ];
+
+        let mut tree = Tree::new();
+        for &(key, value) in items.iter() {
+            tree.insert(key, value);
+        }
+
+        for &(key, value) in items.iter() {
+            assert_eq!(tree.get(key).map(|v| *v), Some(value));
+        }
+
+        let mut got_items: Vec<_> = tree.iter().map(|(k, v)| (k, *v)).collect();
+        got_items.sort();
+
+        let mut items: Vec<_> = items.iter().map(|&(k, v)| (k.to_string(), v)).collect();
+        items.sort();
+
+        assert_eq!(got_items, items);
     }
 }

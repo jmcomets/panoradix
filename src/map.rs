@@ -1,4 +1,5 @@
 use tree::Tree;
+use tree::Iter as TreeIter;
 
 pub struct RadixMap<V> {
     tree: Tree<V>,
@@ -32,11 +33,48 @@ impl<V> RadixMap<V> {
     pub fn is_empty(&self) -> bool {
         self.tree.is_empty()
     }
+
+    pub fn keys<'a>(&'a self) -> Keys<'a, V> {
+        Keys {
+            iter: self.tree.iter(),
+        }
+    }
+
+    pub fn values<'a>(&'a self) -> Values<'a, V> {
+        Values {
+            iter: self.tree.iter(),
+        }
+    }
+}
+
+pub struct Keys<'a, V: 'a> {
+    iter: TreeIter<'a, V>,
+}
+
+impl<'a, V: 'a> Iterator for Keys<'a, V> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(k, _)| k)
+    }
+}
+
+pub struct Values<'a, V: 'a> {
+    iter: TreeIter<'a, V>,
+}
+
+impl<'a, V: 'a> Iterator for Values<'a, V> {
+    type Item = &'a V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(_, v)| v)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::RadixMap;
+    use utils::IntoSortedVec;
 
     #[test]
     fn it_can_lookup_elements() {
@@ -49,5 +87,25 @@ mod tests {
 
         let v = map.get("ac");
         assert_eq!(v.map(|x| *x), Some(1));
+    }
+
+    #[test]
+    fn it_has_a_key_iterator() {
+        let mut map: RadixMap<()> = RadixMap::new();
+        map.insert("foo", ());
+        map.insert("bar", ());
+        map.insert("baz", ());
+
+        assert_eq!(vec!["bar", "baz", "foo"], map.keys().into_sorted_vec());
+    }
+
+    #[test]
+    fn it_has_a_value_iterator() {
+        let mut map: RadixMap<i32> = RadixMap::new();
+        map.insert("foo", 0);
+        map.insert("bar", 1);
+        map.insert("baz", 2);
+
+        assert_eq!(vec![0, 1, 2], map.values().map(|v| *v).into_sorted_vec());
     }
 }

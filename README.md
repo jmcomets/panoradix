@@ -21,8 +21,8 @@ Both are backed by a [Radix tree][].
 
 A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
+- [ ] map iterators: `values_mut()`
 - [ ] faster edge search: currently linear, should probably be binary search
-- [ ] map iterators: `keys()`, `values()` and `values_mut()` for `RadixMap`
 - [ ] erasing a key: should be straightforward
 - [ ] intersection: should be straightforward
 - [ ] union: since there can't be multiple values, merging two values with the
@@ -30,6 +30,11 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 - [ ] take arbitrary keys instead of strings: had a go trying to implement this
       early on, but the API transparency between `&str` and `String` is so damn
       gorgeous that I've postponed this indefinitely
+
+### What's just been finished?
+
+- [x] set iterators: `keys()`
+- [x] map iterators: `keys()`, `values()`
 
 [RadixMap]: https://github.com/jmcomets/panoradix/blob/master/src/map.rs
 [RadixSet]: https://github.com/jmcomets/panoradix/blob/master/src/set.rs

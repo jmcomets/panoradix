@@ -1,4 +1,5 @@
 use map::RadixMap;
+use map::Keys as MapKeys;
 
 pub struct RadixSet {
     map: RadixMap<()>,
@@ -32,11 +33,34 @@ impl RadixSet {
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
+
+    pub fn iter<'a>(&'a self) -> Keys<'a> {
+        self.keys()
+    }
+
+    pub fn keys<'a>(&'a self) -> Keys<'a> {
+        Keys {
+            iter: self.map.keys(),
+        }
+    }
+}
+
+pub struct Keys<'a> {
+    iter: MapKeys<'a, ()>,
+}
+
+impl<'a> Iterator for Keys<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::RadixSet;
+    use utils::IntoSortedVec;
 
     #[test]
     fn it_can_be_created() {
@@ -78,7 +102,12 @@ mod tests {
     }
 
     #[test]
-    fn it_can_iterate_on_elements() {
-        // TODO
+    fn it_has_a_key_iterator() {
+        let mut map = RadixSet::new();
+        map.insert("foo");
+        map.insert("bar");
+        map.insert("baz");
+
+        assert_eq!(vec!["bar", "baz", "foo"], map.keys().into_sorted_vec());
     }
 }
