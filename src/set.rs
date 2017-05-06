@@ -30,6 +30,10 @@ impl RadixSet {
         self.map.get(key).is_some()
     }
 
+    pub fn remove(&mut self, key: &str) -> bool {
+        self.map.remove(key).is_some()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }

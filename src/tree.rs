@@ -65,6 +65,27 @@ impl<V> Node<V> {
         Iter::new(self.edges.iter())
     }
 
+    pub fn remove(&mut self, key: &str) -> Option<V> {
+        if key.is_empty() {
+            self.value.take()
+        } else if let Some((i, cmp)) = self.search_for_prefix(key) {
+            match cmp {
+                PrefixCmp::Full(suffix) => {
+                    let ret = self.edges[i].node.remove(&suffix);
+
+                    if self.edges[i].node.is_empty() {
+                        self.edges.remove(i);
+                    }
+
+                    ret
+                },
+                PrefixCmp::Partial(_) => None,
+            }
+        } else {
+            None
+        }
+    }
+
     fn search_for_prefix<'a>(&self, key: &'a str) -> Option<(usize, PrefixCmp<'a>)> {
         self.edges.iter()
             .enumerate()
@@ -216,6 +237,25 @@ mod tests {
         assert_eq!(t.get("abc").map(|s| s.to_string()), Some("long".to_string()));
         assert_eq!(t.get("ab").map(|s| s.to_string()), Some("shorter".to_string()));
         assert_eq!(t.get("a").map(|s| s.to_string()), Some("short".to_string()));
+    }
+
+    #[test]
+    fn it_can_remove_keys() {
+        let mut t = Tree::new();
+        t.insert("abc", "long");
+        t.insert("ab", "shorter");
+        t.insert("a", "short");
+
+        t.remove("ab");
+        assert_eq!(t.get("ab"), None);
+
+        t.remove("abc");
+        assert_eq!(t.get("abc"), None);
+
+        t.remove("a");
+        assert_eq!(t.get("a"), None);
+
+        assert!(t.is_empty());
     }
 
     #[test]

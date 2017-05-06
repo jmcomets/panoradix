@@ -34,6 +34,10 @@ impl<V> RadixMap<V> {
         self.tree.is_empty()
     }
 
+    pub fn remove(&mut self, key: &str) -> Option<V> {
+        self.tree.remove(key)
+    }
+
     pub fn keys<'a>(&'a self) -> Keys<'a, V> {
         Keys {
             iter: self.tree.iter(),
