@@ -23,7 +23,6 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
 - [ ] map iterators: `values_mut()`
 - [ ] faster edge search: currently linear, should probably be binary search
-- [ ] erasing a key: should be straightforward
 - [ ] intersection: should be straightforward
 - [ ] union: since there can't be multiple values, merging two values with the
              same key should be annoying
@@ -33,6 +32,7 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
 ### What's just been finished?
 
+- [x] erasing a key: `remove()` on both map/set
 - [x] set iterators: `keys()`
 - [x] map iterators: `keys()`, `values()`
 
