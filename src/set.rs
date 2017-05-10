@@ -1,5 +1,8 @@
-use map::RadixMap;
-use map::Keys as MapKeys;
+use map::{
+    RadixMap,
+    Keys as MapKeys,
+    Matches as MapMatches,
+};
 
 pub struct RadixSet {
     map: RadixMap<()>,
@@ -47,6 +50,12 @@ impl RadixSet {
             iter: self.map.keys(),
         }
     }
+
+    pub fn find<'a>(&'a self, key: &str) -> Matches<'a> {
+        Matches {
+            iter: self.map.find(key),
+        }
+    }
 }
 
 pub struct Keys<'a> {
@@ -58,6 +67,18 @@ impl<'a> Iterator for Keys<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
+    }
+}
+
+pub struct Matches<'a> {
+    iter: MapMatches<'a, ()>,
+}
+
+impl<'a> Iterator for Matches<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(k, _)| k)
     }
 }
 

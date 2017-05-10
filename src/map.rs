@@ -1,6 +1,10 @@
 use tree::Tree;
 
-pub use tree::Iter;
+// re-exports from the private `tree` module
+pub use tree::{
+    Matches,
+    Iter,
+};
 
 pub struct RadixMap<V> {
     tree: Tree<V>,
@@ -53,6 +57,10 @@ impl<V> RadixMap<V> {
         Values {
             iter: self.tree.iter(),
         }
+    }
+
+    pub fn find<'a>(&'a self, key: &str) -> Matches<'a, V> {
+        self.tree.find(key)
     }
 }
 

@@ -86,6 +86,30 @@ impl<V> Node<V> {
         }
     }
 
+    pub fn find<'a>(&'a self, key: &str) -> Matches<'a, V> {
+        self.find_subtree(key, "".to_string())
+    }
+
+    fn find_subtree<'a>(&'a self, key: &str, mut prefix: String) -> Matches<'a, V> {
+        if key.is_empty() {
+            Matches::found(prefix, self)
+        } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
+            // concatenate the prefix used to get here with the current full prefix
+            prefix += {
+                if suffix.is_empty() {
+                    key
+                } else {
+                    let (p, _) = key.split_at(key.len() - suffix.len());
+                    p
+                }
+            };
+
+            self.edges[i].node.find_subtree(&suffix, prefix)
+        } else {
+            Matches::none()
+        }
+    }
+
     fn search_for_prefix<'a>(&self, key: &'a str) -> Option<(usize, PrefixCmp<'a>)> {
         self.edges.iter()
             .enumerate()
@@ -155,20 +179,18 @@ enum PrefixCmp<'a> {
 }
 
 fn cmp_prefix<'a>(haystack: &str, needle: &'a str) -> Option<PrefixCmp<'a>> {
-    use self::PrefixCmp::*;
-
     let nb = haystack.chars().zip(needle.chars())
         .take_while(|&(a, b)| a == b)
         .count();
     if nb == 0 {
         None
     } else if nb < haystack.len() {
-        Some(Partial(nb))
+        Some(PrefixCmp::Partial(nb))
     } else if nb < needle.len() {
         let (_, suffix) = needle.split_at(nb);
-        Some(Full(suffix))
+        Some(PrefixCmp::Full(suffix))
     } else {
-        Some(Full(""))
+        Some(PrefixCmp::Full(""))
     }
 }
 
@@ -223,9 +245,43 @@ impl<'a, V: 'a> Iterator for Iter<'a, V> {
     }
 }
 
+pub struct Matches<'a, V: 'a> {
+    result: Option<(String, Iter<'a, V>)>
+}
+
+impl<'a, V: 'a> Matches<'a, V> {
+    fn found(prefix: String, node: &'a Node<V>) -> Matches<'a, V> {
+        Matches {
+            result: Some((prefix, node.iter())),
+        }
+    }
+
+    fn none() -> Matches<'a, V> {
+        Matches {
+            result: None,
+        }
+    }
+}
+
+impl<'a, V: 'a> Iterator for Matches<'a, V> {
+    type Item = (String, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.result.as_mut().and_then(|&mut (ref prefix, ref mut it)| {
+            it.next().map(|(mut s, v)| {
+                // prepend the common prefix
+                s.insert_str(0, prefix);
+
+                (s, v)
+            })
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Tree;
+    use utils::IntoSortedVec;
 
     #[test]
     fn it_handles_adding_existing_parts() {
@@ -284,5 +340,30 @@ mod tests {
         items.sort();
 
         assert_eq!(got_items, items);
+    }
+
+    #[test]
+    fn it_can_complete_a_prefix() {
+        let items = vec![
+            "apes",
+            "apples",
+            "apricots",
+            "asteroids",
+            "babies",
+            "bananas",
+            "glasses",
+            "oranges",
+        ];
+
+        let t = {
+            let mut t = Tree::new();
+            for item in items.iter() {
+                t.insert(item, ());
+            }
+            t
+        };
+
+        let matches: Vec<_> = t.find("ap").map(|(k, _)| k).into_sorted_vec();
+        assert_eq!(matches, vec!["apes", "apples", "apricots"]);
     }
 }
