@@ -41,11 +41,11 @@ impl RadixSet {
         self.map.is_empty()
     }
 
-    pub fn iter<'a>(&'a self) -> Keys<'a> {
+    pub fn iter(&self) -> Keys {
         self.keys()
     }
 
-    pub fn keys<'a>(&'a self) -> Keys<'a> {
+    pub fn keys(&self) -> Keys {
         Keys {
             iter: self.map.keys(),
         }
@@ -55,6 +55,12 @@ impl RadixSet {
         Matches {
             iter: self.map.find(key),
         }
+    }
+}
+
+impl Default for RadixSet {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

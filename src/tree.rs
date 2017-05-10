@@ -23,12 +23,10 @@ impl<V> Node<V> {
     pub fn get(&self, key: &str) -> Option<&V> {
         if key.is_empty() {
             self.value.as_ref()
+        } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
+            self.edges[i].node.get(suffix)
         } else {
-            if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
-                self.edges[i].node.get(suffix)
-            } else {
-                None
-            }
+            None
         }
     }
 
@@ -39,17 +37,16 @@ impl<V> Node<V> {
             old_value
         } else {
             if let Some((i, cmp)) = self.search_for_prefix(key) {
-                let ref mut edge = self.edges[i];
                 match cmp {
                     // Full prefix: insert in the child
                     PrefixCmp::Full(suffix) => {
-                        return edge.node.insert(suffix, value);
+                        return self.edges[i].node.insert(suffix, value);
                     },
 
                     // Partial prefix: split the key and replace the edge's node with a new one
                     // that holds both nodes to insert.
-                    PrefixCmp::Partial(i) => {
-                        edge.split_insert(i, key, value);
+                    PrefixCmp::Partial(j) => {
+                        self.edges[i].split_insert(j, key, value);
                     },
                 };
             } else {
@@ -61,7 +58,7 @@ impl<V> Node<V> {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, V> {
+    pub fn iter(&self) -> Iter<V> {
         Iter::new(self.edges.iter())
     }
 
@@ -71,7 +68,7 @@ impl<V> Node<V> {
         } else if let Some((i, cmp)) = self.search_for_prefix(key) {
             match cmp {
                 PrefixCmp::Full(suffix) => {
-                    let ret = self.edges[i].node.remove(&suffix);
+                    let ret = self.edges[i].node.remove(suffix);
 
                     if self.edges[i].node.is_empty() {
                         self.edges.remove(i);
@@ -104,7 +101,7 @@ impl<V> Node<V> {
                 }
             };
 
-            self.edges[i].node.find_subtree(&suffix, prefix)
+            self.edges[i].node.find_subtree(suffix, prefix)
         } else {
             Matches::none()
         }

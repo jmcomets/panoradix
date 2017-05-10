@@ -43,17 +43,17 @@ impl<V> RadixMap<V> {
         self.tree.remove(key)
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, V> {
+    pub fn iter(&self) -> Iter<V> {
         self.tree.iter()
     }
 
-    pub fn keys<'a>(&'a self) -> Keys<'a, V> {
+    pub fn keys(&self) -> Keys<V> {
         Keys {
             iter: self.tree.iter(),
         }
     }
 
-    pub fn values<'a>(&'a self) -> Values<'a, V> {
+    pub fn values(&self) -> Values<V> {
         Values {
             iter: self.tree.iter(),
         }
