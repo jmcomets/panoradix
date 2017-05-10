@@ -32,9 +32,10 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
 ### What's just been finished?
 
+- [x] fitering elements: `find()` on both map/set
 - [x] erasing a key: `remove()` on both map/set
 - [x] set iterators: `keys()`
-- [x] map iterators: `keys()`, `values()`
+- [x] map iterators: `keys()`, `values()` and `iter()`
 
 [RadixMap]: https://github.com/jmcomets/panoradix/blob/master/src/map.rs
 [RadixSet]: https://github.com/jmcomets/panoradix/blob/master/src/set.rs
