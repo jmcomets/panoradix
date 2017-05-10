@@ -1,5 +1,6 @@
 use tree::Tree;
-use tree::Iter as TreeIter;
+
+pub use tree::Iter;
 
 pub struct RadixMap<V> {
     tree: Tree<V>,
@@ -38,6 +39,10 @@ impl<V> RadixMap<V> {
         self.tree.remove(key)
     }
 
+    pub fn iter<'a>(&'a self) -> Iter<'a, V> {
+        self.tree.iter()
+    }
+
     pub fn keys<'a>(&'a self) -> Keys<'a, V> {
         Keys {
             iter: self.tree.iter(),
@@ -52,7 +57,7 @@ impl<V> RadixMap<V> {
 }
 
 pub struct Keys<'a, V: 'a> {
-    iter: TreeIter<'a, V>,
+    iter: Iter<'a, V>,
 }
 
 impl<'a, V: 'a> Iterator for Keys<'a, V> {
@@ -64,7 +69,7 @@ impl<'a, V: 'a> Iterator for Keys<'a, V> {
 }
 
 pub struct Values<'a, V: 'a> {
-    iter: TreeIter<'a, V>,
+    iter: Iter<'a, V>,
 }
 
 impl<'a, V: 'a> Iterator for Values<'a, V> {
