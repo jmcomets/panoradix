@@ -11,3 +11,7 @@ keywords = ["data-structure", "radix-tree"]
 categories = ["data-structures"]
 
 [dependencies]
+clippy = {version = "0.0.131", optional = true}
+
+[features]
+default = []
