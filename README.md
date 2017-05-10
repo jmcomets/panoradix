@@ -1,8 +1,8 @@
 panoradix
 =========
 
-![Travis badge](https://travis-ci.org/jmcomets/panoradix.svg?branch=master)
-![crates.io badge](https://img.shields.io/crates/v/panoradix.svg)
+[![Travis badge](https://travis-ci.org/jmcomets/panoradix.svg?branch=master)](https://travis-ci.org/jmcomets/panoradix)
+[![crates.io badge](https://img.shields.io/crates/v/panoradix.svg)](https://crates.io/crates/panoradix)
 
 My take on implementing a [Radix tree][], for usage when large data mappings with
 strings as indices.
@@ -21,7 +21,10 @@ Both are backed by a [Radix tree][].
 
 A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
+- [ ] faster iteration: tree iterators were hacked together and abuses
+                        heap allocation/recursion
 - [ ] map iterators: `values_mut()`
+- [ ] documentation: should follow the [API guidelines](https://github.com/brson/rust-api-guidelines)
 - [ ] faster edge search: currently linear, should probably be binary search
 - [ ] intersection: should be straightforward
 - [ ] union: since there can't be multiple values, merging two values with the
