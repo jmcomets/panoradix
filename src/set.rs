@@ -95,7 +95,6 @@ impl<'a> Iterator for Matches<'a> {
 #[cfg(test)]
 mod tests {
     use super::RadixSet;
-    use utils::IntoSortedVec;
 
     #[test]
     fn it_can_be_created() {
@@ -143,6 +142,7 @@ mod tests {
         map.insert("bar");
         map.insert("baz");
 
-        assert_eq!(vec!["bar", "baz", "foo"], map.keys().into_sorted_vec());
+        let keys: Vec<_> = map.keys().collect();
+        assert_eq!(keys, vec!["bar", "baz", "foo"]);
     }
 }

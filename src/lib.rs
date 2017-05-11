@@ -8,5 +8,3 @@ mod map;
 mod set;
 
 mod tree;
-
-mod utils;

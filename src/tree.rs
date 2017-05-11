@@ -282,7 +282,6 @@ impl<'a, V: 'a> Iterator for Matches<'a, V> {
 #[cfg(test)]
 mod tests {
     use super::Tree;
-    use utils::IntoSortedVec;
 
     #[test]
     fn it_can_be_constructed() {
@@ -406,7 +405,7 @@ mod tests {
             t
         };
 
-        let matches: Vec<_> = t.find("ap").map(|(k, _)| k).into_sorted_vec();
+        let matches: Vec<_> = t.find("ap").map(|(k, _)| k).collect();
         assert_eq!(matches, vec!["apes", "apples", "apricots"]);
     }
 }

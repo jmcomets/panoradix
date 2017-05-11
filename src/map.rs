@@ -95,7 +95,6 @@ impl<'a, V: 'a> Iterator for Values<'a, V> {
 #[cfg(test)]
 mod tests {
     use super::RadixMap;
-    use utils::IntoSortedVec;
 
     #[test]
     fn it_can_lookup_elements() {
@@ -117,7 +116,8 @@ mod tests {
         map.insert("bar", ());
         map.insert("baz", ());
 
-        assert_eq!(vec!["bar", "baz", "foo"], map.keys().into_sorted_vec());
+        let keys: Vec<_> = map.keys().collect();
+        assert_eq!(keys, vec!["bar", "baz", "foo"]);
     }
 
     #[test]
@@ -127,6 +127,7 @@ mod tests {
         map.insert("bar", 1);
         map.insert("baz", 2);
 
-        assert_eq!(vec![0, 1, 2], map.values().map(|v| *v).into_sorted_vec());
+        let values: Vec<_> = map.values().collect();
+        assert_eq!(values, vec![&1, &2, &0]);
     }
 }
