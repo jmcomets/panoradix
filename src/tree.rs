@@ -16,6 +16,10 @@ impl<V> Node<V> {
         }
     }
 
+    pub fn clear(&mut self) {
+        *self = Node::new();
+    }
+
     pub fn is_empty(&self) -> bool {
         self.value.is_none() && self.edges.is_empty()
     }
@@ -279,6 +283,28 @@ impl<'a, V: 'a> Iterator for Matches<'a, V> {
 mod tests {
     use super::Tree;
     use utils::IntoSortedVec;
+
+    #[test]
+    fn it_is_empty_after_being_cleared() {
+        let mut t = Tree::new();
+        t.insert("foo", ());
+        t.insert("bar", ());
+        t.insert("baz", ());
+
+        // before clear
+        assert!(!t.is_empty());
+        assert!(t.get("foo").is_some());
+        assert!(t.get("bar").is_some());
+        assert!(t.get("baz").is_some());
+
+        t.clear();
+
+        // after clear
+        assert!(t.is_empty());
+        assert!(t.get("foo").is_none());
+        assert!(t.get("bar").is_none());
+        assert!(t.get("baz").is_none());
+    }
 
     #[test]
     fn it_handles_adding_existing_parts() {

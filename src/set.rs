@@ -13,6 +13,10 @@ impl RadixSet {
         RadixSet { map: RadixMap::new() }
     }
 
+    pub fn clear(&mut self) {
+        self.map.clear();
+    }
+
     pub fn from_items<It, K>(items: It) -> RadixSet
         where It: IntoIterator<Item=K>,
               K: AsRef<str>,

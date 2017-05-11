@@ -15,6 +15,10 @@ impl<V> RadixMap<V> {
         RadixMap { tree: Tree::new() }
     }
 
+    pub fn clear(&mut self) {
+        self.tree.clear();
+    }
+
     pub fn from_items<It, K>(items: It) -> RadixMap<V>
         where It: IntoIterator<Item=(K, V)>,
               K: AsRef<str>,
