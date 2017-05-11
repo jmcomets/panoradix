@@ -285,6 +285,26 @@ mod tests {
     use utils::IntoSortedVec;
 
     #[test]
+    fn it_can_be_constructed() {
+        let t = Tree::<()>::new();
+        assert!(t.is_empty());
+    }
+
+    #[test]
+    fn it_maps_elements() {
+        let mut t = Tree::new();
+        t.insert("abc", 0);
+        t.insert("others", 1);
+        t.insert("other", 2);
+        t.insert("othello", 3);
+
+        assert_eq!(t.get("abc"), Some(&0));
+        assert_eq!(t.get("others"), Some(&1));
+        assert_eq!(t.get("other"), Some(&2));
+        assert_eq!(t.get("othello"), Some(&3));
+    }
+
+    #[test]
     fn it_is_empty_after_being_cleared() {
         let mut t = Tree::new();
         t.insert("foo", ());
