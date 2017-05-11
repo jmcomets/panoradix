@@ -68,6 +68,12 @@ impl<V> RadixMap<V> {
     }
 }
 
+impl<V> Default for RadixMap<V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct Keys<'a, V: 'a> {
     iter: Iter<'a, V>,
 }
