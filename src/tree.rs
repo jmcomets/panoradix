@@ -55,7 +55,11 @@ impl<V> Node<V> {
                 };
             } else {
                 // No match in edges: insert a new edge
-                self.edges.push(Edge::new(key.to_string(), Some(value)));
+                let new_edge = Edge::new(key.to_string(), Some(value));
+
+                // TODO: this should be revamped along with `search_for_prefix`
+                let i = self.edges.binary_search_by(|e| e.prefix.as_str().cmp(key)).unwrap_err();
+                self.edges.insert(i, new_edge);
             }
 
             None
@@ -166,7 +170,7 @@ impl<V> Edge<V> {
             self.node.value = Some(value);
         }
         // finally, make sure the edges are sorted by prefix
-        //self.node.edges.sort_by(|a, b| a.prefix.cmp(&b.prefix));
+        self.node.edges.sort_by(|a, b| a.prefix.cmp(&b.prefix));
     }
 
     fn cmp_prefix<'a>(&self, key: &'a str) -> Option<PrefixCmp<'a>> {
@@ -407,5 +411,22 @@ mod tests {
 
         let matches: Vec<_> = t.find("ap").map(|(k, _)| k).collect();
         assert_eq!(matches, vec!["apes", "apples", "apricots"]);
+    }
+
+    #[test]
+    fn it_has_sorted_iterators() {
+        let items = vec![
+            "c",
+            "b",
+            "a",
+        ];
+
+        let mut tree = Tree::new();
+        for key in items.iter() {
+            tree.insert(key, ());
+        }
+
+        let found: Vec<_> = tree.iter().map(|(k, _)| k).collect();
+        assert_eq!(found, vec!["a", "b", "c"]);
     }
 }
