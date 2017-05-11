@@ -1,18 +1,49 @@
 use map::{
     RadixMap,
-    Keys as MapKeys,
     Matches as MapMatches,
+    Keys as MapKeys,
 };
 
+/// A set based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
+///
+/// TODO: section on benefits/drawbacks of using a Radix tree
 pub struct RadixSet {
     map: RadixMap<()>,
 }
 
 impl RadixSet {
+    /// Makes a new empty RadixSet.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    ///
+    /// // entries can now be inserted into the empty set
+    /// set.insert("a");
+    /// ```
     pub fn new() -> RadixSet {
         RadixSet { map: RadixMap::new() }
     }
 
+    /// Clears the set, removing all values.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    /// set.insert("a");
+    /// set.clear();
+    /// assert!(set.is_empty());
+    /// ```
     pub fn clear(&mut self) {
         self.map.clear();
     }
@@ -29,32 +60,139 @@ impl RadixSet {
         RadixSet { map: map }
     }
 
+    /// Inserts a key into the set.
+    ///
+    /// If the set did not have this key present, `true` is returned, otherwise `false` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    /// assert_eq!(set.insert("a"), true);
+    /// assert_eq!(set.is_empty(), false);
+    ///
+    /// assert_eq!(set.insert("a"), false);
+    /// ```
     pub fn insert(&mut self, key: &str) -> bool {
         self.map.insert(key, ()).is_none()
     }
 
+    /// Returns if the key is present in the set.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    /// set.insert("a");
+    /// assert_eq!(set.has_key("a"), true);
+    /// assert_eq!(set.has_key("b"), false);
+    /// ```
     pub fn has_key(&self, key: &str) -> bool {
         self.map.get(key).is_some()
     }
 
-    pub fn remove(&mut self, key: &str) -> bool {
-        self.map.remove(key).is_some()
-    }
-
+    /// Returns `true` if the set contains no elements.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    /// assert!(set.is_empty());
+    /// set.insert("a");
+    /// assert!(!set.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
 
-    pub fn iter(&self) -> Keys {
+    /// Removes a key from the set, returning if the key was previously in the map.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    /// set.insert("a");
+    /// assert_eq!(set.remove("a"), true);
+    /// assert_eq!(set.remove("a"), false);
+    /// ```
+    pub fn remove(&mut self, key: &str) -> bool {
+        self.map.remove(key).is_some()
+    }
+
+    /// Gets an iterator over the keys of the map (sorted).
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    /// set.insert("c");
+    /// set.insert("b");
+    /// set.insert("a");
+    ///
+    /// for key in set.keys() {
+    ///     println!("{}", key);
+    /// }
+    ///
+    /// let first_key = set.keys().next().unwrap();
+    /// assert_eq!(first_key, "a".to_string());
+    /// ```
+    pub fn keys(&self) -> Keys {
+        self.map.keys()
+    }
+
+    /// Gets an iterator over the keys of the map (sorted).
+    ///
+    /// This method is strictly equivalent to the `keys()` method.
+    pub fn iter(&self) -> Iter {
         self.keys()
     }
 
-    pub fn keys(&self) -> Keys {
-        Keys {
-            iter: self.map.keys(),
-        }
-    }
-
+    /// Gets an iterator over a filtered subset of the set (sorted).
+    ///
+    /// Note that the full key will be yielded each time, not just the filtered suffix.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut set = RadixSet::new();
+    /// set.insert("abc");
+    /// set.insert("acd");
+    /// set.insert("abd");
+    /// set.insert("bbb");
+    /// set.insert("ccc");
+    ///
+    /// for key in set.find("a") {
+    ///     println!("{}", key);
+    /// }
+    ///
+    /// let first_key = set.find("a").next().unwrap();
+    /// assert_eq!(first_key, "abc".to_string());
+    /// ```
     pub fn find<'a>(&'a self, key: &str) -> Matches<'a> {
         Matches {
             iter: self.map.find(key),
@@ -68,17 +206,11 @@ impl Default for RadixSet {
     }
 }
 
-pub struct Keys<'a> {
-    iter: MapKeys<'a, ()>,
-}
+/// An iterator over a `RadixSet`'s keys.
+pub type Keys<'a> = MapKeys<'a, ()>;
 
-impl<'a> Iterator for Keys<'a> {
-    type Item = String;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+/// An alias for `Keys`.
+pub type Iter<'a> = Keys<'a>;
 
 pub struct Matches<'a> {
     iter: MapMatches<'a, ()>,
