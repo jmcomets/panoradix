@@ -41,6 +41,7 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
 ### What's just been finished?
 
+- [x] clearing: `clear()` on both map/set
 - [x] fitering elements: `find()` on both map/set
 - [x] erasing a key: `remove()` on both map/set
 - [x] set iterators: `keys()`
