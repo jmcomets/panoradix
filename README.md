@@ -21,17 +21,21 @@ Both are backed by a [Radix tree][].
 
 A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
+- [ ] documentation: should follow the [API guidelines](https://github.com/brson/rust-api-guidelines)
+  - in progress, some prose needs to be written on the modules
+
 - [ ] faster iteration: tree iterators were hacked together and abuses
                         heap allocation/recursion
 - [ ] map iterators: `values_mut()`
-- [ ] documentation: should follow the [API guidelines](https://github.com/brson/rust-api-guidelines)
-- [ ] faster edge search: currently linear, should probably be binary search
 - [ ] intersection: should be straightforward
 - [ ] union: since there can't be multiple values, merging two values with the
              same key should be annoying
 - [ ] take arbitrary keys instead of strings: had a go trying to implement this
       early on, but the API transparency between `&str` and `String` is so damn
       gorgeous that I've postponed this indefinitely
+- [x] faster edge search: currently linear, should probably be binary search
+  - can be found on the [binary-search-edges][] branch, needs to be
+    optimized as benches show slower runs using binary search instead of linear
 
 ### What's just been finished?
 
@@ -44,3 +48,5 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 [RadixSet]: https://github.com/jmcomets/panoradix/blob/master/src/set.rs
 
 [Radix tree]: https://en.wikipedia.org/wiki/Radix_tree
+
+[binary-search-edges]: https://github.com/jmcomets/panoradix/tree/binary-search-edges
