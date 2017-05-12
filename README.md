@@ -1,11 +1,13 @@
 panoradix
 =========
 
+My take on implementing a [Radix tree][], for usage when large data mappings with
+strings as indices.
+
 [![Travis badge](https://travis-ci.org/jmcomets/panoradix.svg?branch=master)](https://travis-ci.org/jmcomets/panoradix)
 [![crates.io badge](https://img.shields.io/crates/v/panoradix.svg)](https://crates.io/crates/panoradix)
 
-My take on implementing a [Radix tree][], for usage when large data mappings with
-strings as indices.
+[Documentation][]
 
 Note: this is currently a **work in progress**, expect unannounced brutal API
 changes every time the version is bumped.
@@ -44,9 +46,11 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 - [x] set iterators: `keys()`
 - [x] map iterators: `keys()`, `values()` and `iter()`
 
+[Radix tree]: https://en.wikipedia.org/wiki/Radix_tree
+
+[Documentation]: https://docs.rs/panoradix
+
 [RadixMap]: https://github.com/jmcomets/panoradix/blob/master/src/map.rs
 [RadixSet]: https://github.com/jmcomets/panoradix/blob/master/src/set.rs
-
-[Radix tree]: https://en.wikipedia.org/wiki/Radix_tree
 
 [binary-search-edges]: https://github.com/jmcomets/panoradix/tree/binary-search-edges
