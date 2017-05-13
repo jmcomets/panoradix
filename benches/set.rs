@@ -11,7 +11,7 @@ use panoradix::RadixSet;
 #[bench]
 fn basic_lookup(b: &mut Bencher) {
     let items = vec!["a", "abc", "bc", "abcd", "aebc"];
-    let s = RadixSet::from_items(&items);
+    let s: RadixSet = items.iter().collect();
     b.iter(|| {
         for item in items.iter() {
             s.has_key(item);
@@ -23,7 +23,7 @@ fn basic_lookup(b: &mut Bencher) {
 fn lookup_with_close_items(b: &mut Bencher) {
     let items: Vec<_> = (b'a'..b'z').map(|c| format!("{}-needle", c as char)).collect();
 
-    let s = RadixSet::from_items(&items);
+    let s: RadixSet = items.iter().collect();
     b.iter(|| {
         s.has_key("a-needle");
         s.has_key("j-needle");
@@ -44,7 +44,7 @@ fn insert_repeating_characters(b: &mut Bencher) {
     let items = repeating_characters();
 
     b.iter(|| {
-        RadixSet::from_items(&items);
+        items.iter().collect::<RadixSet>();
     });
 }
 
@@ -54,6 +54,6 @@ fn insert_repeating_characters_reversed(b: &mut Bencher) {
     items.reverse();
 
     b.iter(|| {
-        RadixSet::from_items(&items);
+        items.iter().collect::<RadixSet>();
     });
 }

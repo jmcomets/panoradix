@@ -1,3 +1,5 @@
+use std::iter::FromIterator;
+
 use tree::Tree;
 
 // re-exports from the private `tree` module
@@ -48,18 +50,6 @@ impl<V> RadixMap<V> {
     /// ```
     pub fn clear(&mut self) {
         self.tree.clear();
-    }
-
-    pub fn from_items<It, K>(items: It) -> RadixMap<V>
-        where It: IntoIterator<Item=(K, V)>,
-              K: AsRef<str>,
-    {
-        let mut tree = Tree::new();
-        for (k, v) in items {
-            tree.insert(k.as_ref(), v);
-        }
-
-        RadixMap { tree: tree }
     }
 
     /// Inserts a key-value pair into the map.
@@ -255,6 +245,19 @@ impl<V> RadixMap<V> {
 impl<V> Default for RadixMap<V> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<K: AsRef<str>, V> FromIterator<(K, V)> for RadixMap<V> {
+    fn from_iter<It>(iter: It) -> Self
+        where It: IntoIterator<Item=(K, V)>,
+    {
+        let mut tree = Tree::new();
+        for (k, v) in iter {
+            tree.insert(k.as_ref(), v);
+        }
+
+        RadixMap { tree: tree }
     }
 }
 

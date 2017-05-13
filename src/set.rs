@@ -1,3 +1,5 @@
+use std::iter::FromIterator;
+
 use map::{
     RadixMap,
     Matches as MapMatches,
@@ -46,18 +48,6 @@ impl RadixSet {
     /// ```
     pub fn clear(&mut self) {
         self.map.clear();
-    }
-
-    pub fn from_items<It, K>(items: It) -> RadixSet
-        where It: IntoIterator<Item=K>,
-              K: AsRef<str>,
-    {
-        let mut map = RadixMap::new();
-        for k in items {
-            map.insert(k.as_ref(), ());
-        }
-
-        RadixSet { map: map }
     }
 
     /// Inserts a key into the set.
@@ -206,6 +196,15 @@ impl Default for RadixSet {
     }
 }
 
+impl<K: AsRef<str>> FromIterator<K> for RadixSet {
+    fn from_iter<It>(iter: It) -> Self
+        where It: IntoIterator<Item=K>,
+    {
+        let iter = iter.into_iter().map(|k| (k, ()));
+        RadixSet { map: RadixMap::from_iter(iter), }
+    }
+}
+
 /// An iterator over a `RadixSet`'s keys.
 pub type Keys<'a> = MapKeys<'a, ()>;
 
@@ -262,7 +261,7 @@ mod tests {
     fn it_can_be_built_from_multiple_elements() {
         let items = vec!["a", "ac", "acb", "b", "c", "d"];
 
-        let set: RadixSet = RadixSet::from_items(items.clone());
+        let set: RadixSet = items.iter().collect();
 
         assert!(items.iter().all(|k| set.has_key(k)))
     }
