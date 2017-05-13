@@ -26,8 +26,6 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 - [ ] documentation: should follow the [API guidelines](https://github.com/brson/rust-api-guidelines)
   - in progress, some prose needs to be written on the modules
 
-- [ ] faster iteration: tree iterators were hacked together and abuses
-                        heap allocation/recursion
 - [ ] map iterators: `values_mut()`
 - [ ] intersection: should be straightforward
 - [ ] union: since there can't be multiple values, merging two values with the
@@ -41,6 +39,8 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
 ### What's just been finished?
 
+- [x] faster iteration: tree iterators were hacked together and abuses
+                        heap allocation/recursion, now use a faster structure
 - [x] clearing: `clear()` on both map/set
 - [x] fitering elements: `find()` on both map/set
 - [x] erasing a key: `remove()` on both map/set

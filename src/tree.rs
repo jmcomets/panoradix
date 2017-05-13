@@ -67,7 +67,7 @@ impl<V> Node<V> {
     }
 
     pub fn iter(&self) -> Iter<V> {
-        Iter::new(self.edges.iter())
+        Iter::new(self)
     }
 
     pub fn remove(&mut self, key: &str) -> Option<V> {
@@ -200,15 +200,15 @@ fn cmp_prefix<'a>(haystack: &str, needle: &'a str) -> Option<PrefixCmp<'a>> {
 }
 
 pub struct Iter<'a, V: 'a> {
-    edge_iter: slice::Iter<'a, Edge<V>>,
-    child_iter: Option<(&'a Edge<V>, Box<Iter<'a, V>>)>
+    path: Vec<IterPath<'a, V>>,
+    prefix: String,
 }
 
 impl<'a, V: 'a> Iter<'a, V> {
-    fn new(edge_iter: slice::Iter<'a, Edge<V>>) -> Iter<'a, V> {
+    fn new(node: &'a Node<V>) -> Iter<'a, V> {
         Iter {
-            edge_iter: edge_iter,
-            child_iter: None,
+            path: vec![IterPath::from_node(node)],
+            prefix: String::new(),
         }
     }
 }
@@ -217,36 +217,66 @@ impl<'a, V: 'a> Iterator for Iter<'a, V> {
     type Item = (String, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.child_iter.is_none() {
-            self.child_iter = self.edge_iter.next().map(|edge| {
-                let next_iter = edge.node.iter();
-                (edge, Box::new(next_iter))
-            });
-        }
-
-        let mut reset_child_iter = false;
-        let mut ret = None;
-
-        if let Some((edge, ref mut next_it)) = self.child_iter {
-            if let Some((suffix, value)) = next_it.next() {
-                ret = Some((edge.prefix.to_string() + &suffix, value));
-            } else {
-                reset_child_iter = true;
-                if let Some(ref value) = edge.node.value {
-                    ret = Some((edge.prefix.to_string(), value));
+        while !self.path.is_empty() {
+            if let Some(adv) = self.path.last_mut().unwrap().advance() {
+                match adv {
+                    Ok(value) => {
+                        return Some((self.prefix.clone(), value));
+                    },
+                    Err(elem) => {
+                        self.prefix += elem.prefix;
+                        self.path.push(elem);
+                    },
                 }
+            } else {
+                let last_prefix = self.path.pop().unwrap().prefix;
+                let i = self.prefix.len()-last_prefix.len();
+                self.prefix.drain(i..);
             }
         }
 
-        if reset_child_iter {
-            self.child_iter = None;
+        None
 
-            if ret.is_none() {
-                return self.next();
+    }
+}
+
+struct IterPath<'a, V: 'a> {
+    node: &'a Node<V>,
+    edge_iter: Option<slice::Iter<'a, Edge<V>>>,
+    prefix: &'a str,
+}
+
+impl<'a, V: 'a> IterPath<'a, V> {
+    fn from_node(node: &'a Node<V>) -> IterPath<'a, V> {
+        IterPath {
+            node: node,
+            prefix: "",
+            edge_iter: None,
+        }
+    }
+
+    fn from_edge(edge: &'a Edge<V>) -> IterPath<'a, V> {
+        IterPath {
+            node: &edge.node,
+            prefix: &edge.prefix,
+            edge_iter: None,
+        }
+    }
+
+    /// Returns None if there are no more elements to yield under this node, otherwise return
+    /// Ok(value) if there is a value to yield, or Err(new_elem) if there is an underlying
+    /// element to consider.
+    fn advance(&mut self) -> Option<Result<&'a V, IterPath<'a, V>>> {
+        if self.edge_iter.is_none() {
+            self.edge_iter = Some(self.node.edges.iter());
+            if let Some(ref value) = self.node.value {
+                return Some(Ok(value));
             }
         }
 
-        ret
+        self.edge_iter.as_mut().unwrap().next()
+            .map(IterPath::from_edge)
+            .map(Err)
     }
 }
 
