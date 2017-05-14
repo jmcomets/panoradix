@@ -6,14 +6,16 @@ use map::{
     Keys as MapKeys,
 };
 
+use key::Key;
+
 /// A set based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
 ///
 /// TODO: section on benefits/drawbacks of using a Radix tree
-pub struct RadixSet {
-    map: RadixMap<()>,
+pub struct RadixSet<K: Key + ?Sized> {
+    map: RadixMap<K, ()>,
 }
 
-impl RadixSet {
+impl<K: Key + ?Sized> RadixSet<K> {
     /// Makes a new empty RadixSet.
     ///
     /// # Examples
@@ -28,7 +30,7 @@ impl RadixSet {
     /// // entries can now be inserted into the empty set
     /// set.insert("a");
     /// ```
-    pub fn new() -> RadixSet {
+    pub fn new() -> RadixSet<K> {
         RadixSet { map: RadixMap::new() }
     }
 
@@ -68,7 +70,7 @@ impl RadixSet {
     ///
     /// assert_eq!(set.insert("a"), false);
     /// ```
-    pub fn insert(&mut self, key: &str) -> bool {
+    pub fn insert(&mut self, key: &K) -> bool {
         self.map.insert(key, ()).is_none()
     }
 
@@ -86,7 +88,7 @@ impl RadixSet {
     /// assert_eq!(set.has_key("a"), true);
     /// assert_eq!(set.has_key("b"), false);
     /// ```
-    pub fn has_key(&self, key: &str) -> bool {
+    pub fn has_key(&self, key: &K) -> bool {
         self.map.get(key).is_some()
     }
 
@@ -122,7 +124,7 @@ impl RadixSet {
     /// assert_eq!(set.remove("a"), true);
     /// assert_eq!(set.remove("a"), false);
     /// ```
-    pub fn remove(&mut self, key: &str) -> bool {
+    pub fn remove(&mut self, key: &K) -> bool {
         self.map.remove(key).is_some()
     }
 
@@ -147,14 +149,14 @@ impl RadixSet {
     /// let first_key = set.keys().next().unwrap();
     /// assert_eq!(first_key, "a".to_string());
     /// ```
-    pub fn keys(&self) -> Keys {
+    pub fn keys(&self) -> Keys<K> {
         self.map.keys()
     }
 
     /// Gets an iterator over the keys of the map (sorted).
     ///
     /// This method is strictly equivalent to the `keys()` method.
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&self) -> Iter<K> {
         self.keys()
     }
 
@@ -183,22 +185,22 @@ impl RadixSet {
     /// let first_key = set.find("a").next().unwrap();
     /// assert_eq!(first_key, "abc".to_string());
     /// ```
-    pub fn find<'a>(&'a self, key: &str) -> Matches<'a> {
+    pub fn find<'a>(&'a self, key: &K) -> Matches<'a, K> {
         Matches {
             iter: self.map.find(key),
         }
     }
 }
 
-impl Default for RadixSet {
+impl<K: Key + ?Sized> Default for RadixSet<K> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K: AsRef<str>> FromIterator<K> for RadixSet {
+impl<K: Key + ?Sized, T: AsRef<K>> FromIterator<T> for RadixSet<K> {
     fn from_iter<It>(iter: It) -> Self
-        where It: IntoIterator<Item=K>,
+        where It: IntoIterator<Item=T>,
     {
         let iter = iter.into_iter().map(|k| (k, ()));
         RadixSet { map: RadixMap::from_iter(iter), }
@@ -206,17 +208,17 @@ impl<K: AsRef<str>> FromIterator<K> for RadixSet {
 }
 
 /// An iterator over a `RadixSet`'s keys.
-pub type Keys<'a> = MapKeys<'a, ()>;
+pub type Keys<'a, K: 'a + Key + ?Sized> = MapKeys<'a, K, ()>;
 
 /// An alias for `Keys`.
-pub type Iter<'a> = Keys<'a>;
+pub type Iter<'a, K: 'a + Key + ?Sized> = Keys<'a, K>;
 
-pub struct Matches<'a> {
-    iter: MapMatches<'a, ()>,
+pub struct Matches<'a, K: 'a + Key + ?Sized> {
+    iter: MapMatches<'a, K, ()>,
 }
 
-impl<'a> Iterator for Matches<'a> {
-    type Item = String;
+impl<'a, K: 'a + Key + ?Sized> Iterator for Matches<'a, K> {
+    type Item = K::Owned;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(k, _)| k)
@@ -229,26 +231,26 @@ mod tests {
 
     #[test]
     fn it_can_be_created() {
-        let _: RadixSet = RadixSet::new();
+        let _: RadixSet<[i32]> = RadixSet::new();
     }
 
     #[test]
     fn it_accepts_an_empty_element() {
-        let mut set: RadixSet = RadixSet::new();
+        let mut set: RadixSet<str> = RadixSet::new();
         set.insert("");
         assert!(!set.is_empty());
     }
 
     #[test]
     fn it_accepts_an_element() {
-        let mut set: RadixSet = RadixSet::new();
+        let mut set: RadixSet<str> = RadixSet::new();
         set.insert("a");
         assert!(!set.is_empty());
     }
 
     #[test]
     fn it_accepts_multiple_elements() {
-        let mut set: RadixSet = RadixSet::new();
+        let mut set: RadixSet<str> = RadixSet::new();
         set.insert("a");
         set.insert("b");
         set.insert("c");
@@ -261,14 +263,14 @@ mod tests {
     fn it_can_be_built_from_multiple_elements() {
         let items = vec!["a", "ac", "acb", "b", "c", "d"];
 
-        let set: RadixSet = items.iter().collect();
+        let set: RadixSet<str> = items.iter().collect();
 
         assert!(items.iter().all(|k| set.has_key(k)))
     }
 
     #[test]
     fn it_has_a_key_iterator() {
-        let mut map = RadixSet::new();
+        let mut map = RadixSet::<str>::new();
         map.insert("foo");
         map.insert("bar");
         map.insert("baz");

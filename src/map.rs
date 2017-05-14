@@ -1,21 +1,21 @@
 use std::iter::FromIterator;
 
-use tree::Tree;
-
-// re-exports from the private `tree` module
-pub use tree::{
-    Matches,
-    Iter,
+use tree::{
+    Tree,
+    Iter as TreeIter,
+    Matches as TreeMatches,
 };
+
+use key::Key;
 
 /// A map based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
 ///
 /// TODO: section on benefits/drawbacks of using a Radix tree
-pub struct RadixMap<V> {
-    tree: Tree<V>,
+pub struct RadixMap<K: Key + ?Sized, V> {
+    tree: Tree<<K as Key>::Component, V>,
 }
 
-impl<V> RadixMap<V> {
+impl<K: Key + ?Sized, V> RadixMap<K, V> {
     /// Makes a new empty RadixMap.
     ///
     /// # Examples
@@ -30,7 +30,7 @@ impl<V> RadixMap<V> {
     /// // entries can now be inserted into the empty map
     /// map.insert("a", 1);
     /// ```
-    pub fn new() -> RadixMap<V> {
+    pub fn new() -> RadixMap<K, V> {
         RadixMap { tree: Tree::new() }
     }
 
@@ -73,8 +73,8 @@ impl<V> RadixMap<V> {
     /// map.insert("a", 42);
     /// assert_eq!(map.insert("a", 1337), Some(42));
     /// ```
-    pub fn insert(&mut self, key: &str, value: V) -> Option<V> {
-        self.tree.insert(key, value)
+    pub fn insert(&mut self, key: &K, value: V) -> Option<V> {
+        self.tree.insert(key.as_slice(), value)
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -91,8 +91,8 @@ impl<V> RadixMap<V> {
     /// assert_eq!(map.get("a"), Some(&1));
     /// assert_eq!(map.get("b"), None);
     /// ```
-    pub fn get(&self, key: &str) -> Option<&V> {
-        self.tree.get(key)
+    pub fn get(&self, key: &K) -> Option<&V> {
+        self.tree.get(key.as_slice())
     }
 
     /// Returns `true` if the map contains no elements.
@@ -128,8 +128,8 @@ impl<V> RadixMap<V> {
     /// assert_eq!(map.remove("a"), Some(1));
     /// assert_eq!(map.remove("a"), None);
     /// ```
-    pub fn remove(&mut self, key: &str) -> Option<V> {
-        self.tree.remove(key)
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        self.tree.remove(key.as_slice())
     }
 
     /// Gets an iterator over the entries of the map, sorted by key.
@@ -153,8 +153,10 @@ impl<V> RadixMap<V> {
     /// let (first_key, first_value) = map.iter().next().unwrap();
     /// assert_eq!((first_key, *first_value), ("a".to_string(), 1));
     /// ```
-    pub fn iter(&self) -> Iter<V> {
-        self.tree.iter()
+    pub fn iter(&self) -> Iter<K, V> {
+        Iter {
+            iter: self.tree.iter(),
+        }
     }
 
     /// Gets an iterator over the keys of the map (sorted).
@@ -178,9 +180,9 @@ impl<V> RadixMap<V> {
     /// let first_key = map.keys().next().unwrap();
     /// assert_eq!(first_key, "a".to_string());
     /// ```
-    pub fn keys(&self) -> Keys<V> {
+    pub fn keys(&self) -> Keys<K, V> {
         Keys {
-            iter: self.tree.iter(),
+            iter: self.iter(),
         }
     }
 
@@ -205,9 +207,9 @@ impl<V> RadixMap<V> {
     /// let first_value = map.values().next().unwrap();
     /// assert_eq!(first_value, &1);
     /// ```
-    pub fn values(&self) -> Values<V> {
+    pub fn values(&self) -> Values<K, V> {
         Values {
-            iter: self.tree.iter(),
+            iter: self.iter(),
         }
     }
 
@@ -237,37 +239,55 @@ impl<V> RadixMap<V> {
     /// let (first_key, first_value) = map.find("a").next().unwrap();
     /// assert_eq!((first_key, first_value), ("abc".to_string(), &1));
     /// ```
-    pub fn find<'a>(&'a self, key: &str) -> Matches<'a, V> {
-        self.tree.find(key)
+    pub fn find<'a>(&'a self, key: &K) -> Matches<'a, K, V> {
+        Matches {
+            matches: self.tree.find(key.as_slice()),
+        }
     }
 }
 
-impl<V> Default for RadixMap<V> {
+impl<K: Key + ?Sized, V> Default for RadixMap<K, V> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K: AsRef<str>, V> FromIterator<(K, V)> for RadixMap<V> {
+impl<K, V, T> FromIterator<(T, V)> for RadixMap<K, V>
+    where K: Key + ?Sized,
+          T: AsRef<K>,
+{
     fn from_iter<It>(iter: It) -> Self
-        where It: IntoIterator<Item=(K, V)>,
+        where It: IntoIterator<Item=(T, V)>,
     {
         let mut tree = Tree::new();
-        for (k, v) in iter {
-            tree.insert(k.as_ref(), v);
+        for (t, v) in iter {
+            tree.insert(t.as_ref().as_slice(), v);
         }
 
         RadixMap { tree: tree }
     }
 }
 
-/// An iterator over a `RadixMap`'s keys.
-pub struct Keys<'a, V: 'a> {
-    iter: Iter<'a, V>,
+/// An iterator over a `RadixMap`'s (key, value) pairs.
+pub struct Iter<'a, K: 'a + Key + ?Sized, V: 'a> {
+    iter: TreeIter<'a, K::Component, V>,
 }
 
-impl<'a, V: 'a> Iterator for Keys<'a, V> {
-    type Item = String;
+impl<'a, K: 'a + Key + ?Sized, V: 'a> Iterator for Iter<'a, K, V> {
+    type Item = (K::Owned, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(k, v)| (K::from_vec(k), v))
+    }
+}
+
+/// An iterator over a `RadixMap`'s keys.
+pub struct Keys<'a, K: 'a + Key + ?Sized, V: 'a> {
+    iter: Iter<'a, K, V>,
+}
+
+impl<'a, K: 'a + Key + ?Sized, V: 'a> Iterator for Keys<'a, K, V> {
+    type Item = K::Owned;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(k, _)| k)
@@ -275,15 +295,27 @@ impl<'a, V: 'a> Iterator for Keys<'a, V> {
 }
 
 /// An iterator over a `RadixMap`'s values.
-pub struct Values<'a, V: 'a> {
-    iter: Iter<'a, V>,
+pub struct Values<'a, K: 'a + Key + ?Sized, V: 'a> {
+    iter: Iter<'a, K, V>,
 }
 
-impl<'a, V: 'a> Iterator for Values<'a, V> {
+impl<'a, K: 'a + Key + ?Sized, V: 'a> Iterator for Values<'a, K, V> {
     type Item = &'a V;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(_, v)| v)
+    }
+}
+
+pub struct Matches<'a, K: 'a + Key + ?Sized, V: 'a> {
+    matches: TreeMatches<'a, K::Component, V>,
+}
+
+impl<'a, K: 'a + Key + ?Sized, V: 'a> Iterator for Matches<'a, K, V> {
+    type Item = (K::Owned, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.matches.next().map(|(k, v)| (K::from_vec(k), v))
     }
 }
 
@@ -293,7 +325,7 @@ mod tests {
 
     #[test]
     fn it_can_lookup_elements() {
-        let mut map: RadixMap<i32> = RadixMap::new();
+        let mut map: RadixMap<str, i32> = RadixMap::new();
         map.insert("a", 0);
         map.insert("ac", 1);
 
@@ -306,7 +338,7 @@ mod tests {
 
     #[test]
     fn it_has_a_key_iterator() {
-        let mut map: RadixMap<()> = RadixMap::new();
+        let mut map: RadixMap<str, ()> = RadixMap::new();
         map.insert("foo", ());
         map.insert("bar", ());
         map.insert("baz", ());
@@ -317,7 +349,7 @@ mod tests {
 
     #[test]
     fn it_has_a_value_iterator() {
-        let mut map: RadixMap<i32> = RadixMap::new();
+        let mut map: RadixMap<str, i32> = RadixMap::new();
         map.insert("foo", 0);
         map.insert("bar", 1);
         map.insert("baz", 2);

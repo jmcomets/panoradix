@@ -11,7 +11,7 @@ use panoradix::RadixSet;
 #[bench]
 fn basic_lookup(b: &mut Bencher) {
     let items = vec!["a", "abc", "bc", "abcd", "aebc"];
-    let s: RadixSet = items.iter().collect();
+    let s: RadixSet<str> = items.iter().collect();
     b.iter(|| {
         for item in items.iter() {
             s.has_key(item);
@@ -23,7 +23,7 @@ fn basic_lookup(b: &mut Bencher) {
 fn lookup_with_close_items(b: &mut Bencher) {
     let items: Vec<_> = (b'a'..b'z').map(|c| format!("{}-needle", c as char)).collect();
 
-    let s: RadixSet = items.iter().collect();
+    let s: RadixSet<str> = items.iter().collect();
     b.iter(|| {
         s.has_key("a-needle");
         s.has_key("j-needle");
@@ -44,7 +44,7 @@ fn insert_repeating_characters(b: &mut Bencher) {
     let items = repeating_characters();
 
     b.iter(|| {
-        items.iter().collect::<RadixSet>();
+        items.iter().collect::<RadixSet<str>>();
     });
 }
 
@@ -54,29 +54,29 @@ fn insert_repeating_characters_reversed(b: &mut Bencher) {
     items.reverse();
 
     b.iter(|| {
-        items.iter().collect::<RadixSet>();
+        items.iter().collect::<RadixSet<str>>();
     });
 }
 
 #[bench]
 fn iteration(b: &mut Bencher) {
     {
-        let s1: RadixSet = WORDS_1.iter().collect();
+        let s1: RadixSet<str> = WORDS_1.iter().collect();
         b.iter(|| { for _ in s1.iter() { /* noop */ } })
     }
 
     {
-        let s2: RadixSet = WORDS_2.iter().collect();
+        let s2: RadixSet<str> = WORDS_2.iter().collect();
         b.iter(|| { for _ in s2.iter() { /* noop */ } })
     }
 
     {
-        let s3: RadixSet = WORDS_3.iter().collect();
+        let s3: RadixSet<str> = WORDS_3.iter().collect();
         b.iter(|| { for _ in s3.iter() { /* noop */ } })
     }
 
     {
-        let s4: RadixSet = WORDS_4.iter().collect();
+        let s4: RadixSet<str> = WORDS_4.iter().collect();
         b.iter(|| { for _ in s4.iter() { /* noop */ } })
     }
 }

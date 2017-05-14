@@ -10,6 +10,7 @@ pub use map::RadixMap;
 pub use set::RadixSet;
 
 mod map;
+mod key;
 mod set;
 
 mod tree;

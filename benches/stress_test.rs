@@ -10,7 +10,7 @@ use panoradix::RadixSet;
 #[bench]
 fn stress_test(b: &mut Bencher) {
     b.iter(|| {
-        let mut strings = RadixSet::new();
+        let mut strings = RadixSet::<str>::new();
 
         for word in WORDS.iter() {
             strings.insert(word);

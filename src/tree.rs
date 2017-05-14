@@ -1,15 +1,37 @@
 use std::mem;
 use std::slice;
+use std::borrow::{Borrow, Cow};
 
-pub type Tree<V> = Node<V>;
+use key::KeyComponent;
 
-pub struct Node<V> {
-    value: Option<V>,
-    edges: Vec<Edge<V>>,
+pub type Tree<K, V> = Node<K, V>;
+
+trait PrefixExt<K> {
+    fn add_prefix(&mut self, other: &[K]);
+
+    fn add_suffix(&mut self, other: &[K]);
 }
 
-impl<V> Node<V> {
-    pub fn new() -> Node<V> {
+impl<K: Clone> PrefixExt<K> for Vec<K> {
+    fn add_prefix(&mut self, other: &[K]) {
+        let mut old = Vec::with_capacity(self.len() + other.len());
+        mem::swap(self, &mut old);
+        self.extend_from_slice(other);
+        self.extend_from_slice(&old);
+    }
+
+    fn add_suffix(&mut self, other: &[K]) {
+        self.extend_from_slice(other);
+    }
+}
+
+pub struct Node<K: KeyComponent, V> {
+    value: Option<V>,
+    edges: Vec<Edge<K, V>>,
+}
+
+impl<K: KeyComponent, V> Node<K, V> {
+    pub fn new() -> Node<K, V> {
         Node {
             value: None,
             edges: Vec::new(),
@@ -24,17 +46,17 @@ impl<V> Node<V> {
         self.value.is_none() && self.edges.is_empty()
     }
 
-    pub fn get(&self, key: &str) -> Option<&V> {
+    pub fn get(&self, key: &[K]) -> Option<&V> {
         if key.is_empty() {
             self.value.as_ref()
         } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
-            self.edges[i].node.get(suffix)
+            self.edges[i].node.get(suffix.borrow())
         } else {
             None
         }
     }
 
-    pub fn insert(&mut self, key: &str, value: V) -> Option<V> {
+    pub fn insert(&mut self, key: &[K], value: V) -> Option<V> {
         if key.is_empty() {
             let old_value = self.value.take();
             self.value = Some(value);
@@ -44,7 +66,7 @@ impl<V> Node<V> {
                 match cmp {
                     // Full prefix: insert in the child
                     PrefixCmp::Full(suffix) => {
-                        return self.edges[i].node.insert(suffix, value);
+                        return self.edges[i].node.insert(suffix.borrow(), value);
                     },
 
                     // Partial prefix: split the key and replace the edge's node with a new one
@@ -55,10 +77,10 @@ impl<V> Node<V> {
                 };
             } else {
                 // No match in edges: insert a new edge
-                let new_edge = Edge::new(key.to_string(), Some(value));
+                let new_edge = Edge::new(key.to_owned(), Some(value));
 
                 // TODO: this should be revamped along with `search_for_prefix`
-                let i = self.edges.binary_search_by(|e| e.prefix.as_str().cmp(key)).unwrap_err();
+                let i = self.edges.binary_search_by(|e| e.prefix.as_slice().cmp(key)).unwrap_err();
                 self.edges.insert(i, new_edge);
             }
 
@@ -66,17 +88,17 @@ impl<V> Node<V> {
         }
     }
 
-    pub fn iter(&self) -> Iter<V> {
+    pub fn iter(&self) -> Iter<K, V> {
         Iter::new(self)
     }
 
-    pub fn remove(&mut self, key: &str) -> Option<V> {
+    pub fn remove(&mut self, key: &[K]) -> Option<V> {
         if key.is_empty() {
             self.value.take()
         } else if let Some((i, cmp)) = self.search_for_prefix(key) {
             match cmp {
                 PrefixCmp::Full(suffix) => {
-                    let ret = self.edges[i].node.remove(suffix);
+                    let ret = self.edges[i].node.remove(suffix.borrow());
 
                     if self.edges[i].node.is_empty() {
                         self.edges.remove(i);
@@ -91,16 +113,16 @@ impl<V> Node<V> {
         }
     }
 
-    pub fn find<'a>(&'a self, key: &str) -> Matches<'a, V> {
-        self.find_subtree(key, "".to_string())
+    pub fn find<'a>(&'a self, key: &[K]) -> Matches<'a, K, V> {
+        self.find_subtree(key, Vec::new())
     }
 
-    fn find_subtree<'a>(&'a self, key: &str, mut prefix: String) -> Matches<'a, V> {
+    fn find_subtree<'a>(&'a self, key: &[K], mut prefix: Vec<K>) -> Matches<'a, K, V> {
         if key.is_empty() {
             Matches::found(prefix, self)
         } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
             // concatenate the prefix used to get here with the current full prefix
-            prefix += {
+            let new_prefix = {
                 if suffix.is_empty() {
                     key
                 } else {
@@ -109,27 +131,29 @@ impl<V> Node<V> {
                 }
             };
 
-            self.edges[i].node.find_subtree(suffix, prefix)
+            prefix.add_suffix(new_prefix);
+
+            self.edges[i].node.find_subtree(suffix.borrow(), prefix)
         } else {
             Matches::none()
         }
     }
 
-    fn search_for_prefix<'a>(&self, key: &'a str) -> Option<(usize, PrefixCmp<'a>)> {
+    fn search_for_prefix<'a>(&self, key: &'a [K]) -> Option<(usize, PrefixCmp<'a, K>)> {
         self.edges.iter()
             .enumerate()
-            .flat_map(|(i, e)| e.cmp_prefix(key).map(|cmp| (i, cmp)))
+            .flat_map(|(i, e)| cmp_prefix(&e.prefix, key).map(|cmp| (i, cmp)))
             .next()
     }
 }
 
-struct Edge<V> {
-    prefix: String,
-    node: Box<Node<V>>,
+struct Edge<K: KeyComponent, V> {
+    prefix: Vec<K>,
+    node: Box<Node<K, V>>,
 }
 
-impl<V> Edge<V> {
-    fn new(prefix: String, value: Option<V>) -> Edge<V> {
+impl<K: KeyComponent, V> Edge<K, V> {
+    fn new(prefix: Vec<K>, value: Option<V>) -> Edge<K, V> {
         let mut node = Box::new(Node::new());
         node.value = value;
 
@@ -139,12 +163,12 @@ impl<V> Edge<V> {
         }
     }
 
-    fn split_insert(&mut self, i: usize, key: &str, value: V) {
+    fn split_insert(&mut self, i: usize, key: &[K], value: V) {
         let (prefix, (key_suffix, edge_suffix)) = {
             let (prefix, key_suffix) = key.split_at(i);
             let (_, edge_suffix) = self.prefix.split_at(i);
 
-            (prefix.to_string(), (key_suffix.to_string(), edge_suffix.to_string()))
+            (prefix.to_owned(), (key_suffix.to_owned(), edge_suffix.to_owned()))
         };
 
         // assign the new prefix
@@ -172,19 +196,15 @@ impl<V> Edge<V> {
         // finally, make sure the edges are sorted by prefix
         self.node.edges.sort_by(|a, b| a.prefix.cmp(&b.prefix));
     }
-
-    fn cmp_prefix<'a>(&self, key: &'a str) -> Option<PrefixCmp<'a>> {
-        cmp_prefix(&self.prefix, key)
-    }
 }
 
-enum PrefixCmp<'a> {
-    Full(&'a str),
+enum PrefixCmp<'a, K: 'a + KeyComponent> {
+    Full(Cow<'a, [K]>),
     Partial(usize),
 }
 
-fn cmp_prefix<'a>(haystack: &str, needle: &'a str) -> Option<PrefixCmp<'a>> {
-    let nb = haystack.chars().zip(needle.chars())
+fn cmp_prefix<'a, K: KeyComponent>(haystack: &[K], needle: &'a [K]) -> Option<PrefixCmp<'a, K>> {
+    let nb = haystack.iter().zip(needle.iter())
         .take_while(|&(a, b)| a == b)
         .count();
     if nb == 0 {
@@ -193,28 +213,28 @@ fn cmp_prefix<'a>(haystack: &str, needle: &'a str) -> Option<PrefixCmp<'a>> {
         Some(PrefixCmp::Partial(nb))
     } else if nb < needle.len() {
         let (_, suffix) = needle.split_at(nb);
-        Some(PrefixCmp::Full(suffix))
+        Some(PrefixCmp::Full(Cow::Borrowed(suffix)))
     } else {
-        Some(PrefixCmp::Full(""))
+        Some(PrefixCmp::Full(Cow::default()))
     }
 }
 
-pub struct Iter<'a, V: 'a> {
-    path: Vec<IterPath<'a, V>>,
-    prefix: String,
+pub struct Iter<'a, K: 'a + KeyComponent, V: 'a> {
+    path: Vec<IterPath<'a, K, V>>,
+    prefix: Vec<K>,
 }
 
-impl<'a, V: 'a> Iter<'a, V> {
-    fn new(node: &'a Node<V>) -> Iter<'a, V> {
+impl<'a, K: KeyComponent, V: 'a> Iter<'a, K, V> {
+    fn new(node: &'a Node<K, V>) -> Iter<'a, K, V> {
         Iter {
             path: vec![IterPath::from_node(node)],
-            prefix: String::new(),
+            prefix: Vec::new(),
         }
     }
 }
 
-impl<'a, V: 'a> Iterator for Iter<'a, V> {
-    type Item = (String, &'a V);
+impl<'a, K: KeyComponent, V: 'a> Iterator for Iter<'a, K, V> {
+    type Item = (Vec<K>, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         while !self.path.is_empty() {
@@ -224,7 +244,7 @@ impl<'a, V: 'a> Iterator for Iter<'a, V> {
                         return Some((self.prefix.clone(), value));
                     },
                     Err(elem) => {
-                        self.prefix += elem.prefix;
+                        self.prefix.add_suffix(elem.prefix.borrow());
                         self.path.push(elem);
                     },
                 }
@@ -240,25 +260,25 @@ impl<'a, V: 'a> Iterator for Iter<'a, V> {
     }
 }
 
-struct IterPath<'a, V: 'a> {
-    node: &'a Node<V>,
-    edge_iter: Option<slice::Iter<'a, Edge<V>>>,
-    prefix: &'a str,
+struct IterPath<'a, K: 'a + KeyComponent, V: 'a> {
+    node: &'a Node<K, V>,
+    edge_iter: Option<slice::Iter<'a, Edge<K, V>>>,
+    prefix: Cow<'a, [K]>,
 }
 
-impl<'a, V: 'a> IterPath<'a, V> {
-    fn from_node(node: &'a Node<V>) -> IterPath<'a, V> {
+impl<'a, K: 'a + KeyComponent, V: 'a> IterPath<'a, K, V> {
+    fn from_node(node: &'a Node<K, V>) -> IterPath<'a, K, V> {
         IterPath {
             node: node,
-            prefix: "",
+            prefix: Cow::default(),
             edge_iter: None,
         }
     }
 
-    fn from_edge(edge: &'a Edge<V>) -> IterPath<'a, V> {
+    fn from_edge(edge: &'a Edge<K, V>) -> IterPath<'a, K, V> {
         IterPath {
             node: &edge.node,
-            prefix: &edge.prefix,
+            prefix: Cow::Borrowed(&edge.prefix),
             edge_iter: None,
         }
     }
@@ -266,7 +286,7 @@ impl<'a, V: 'a> IterPath<'a, V> {
     /// Returns None if there are no more elements to yield under this node, otherwise return
     /// Ok(value) if there is a value to yield, or Err(new_elem) if there is an underlying
     /// element to consider.
-    fn advance(&mut self) -> Option<Result<&'a V, IterPath<'a, V>>> {
+    fn advance(&mut self) -> Option<Result<&'a V, IterPath<'a, K, V>>> {
         if self.edge_iter.is_none() {
             self.edge_iter = Some(self.node.edges.iter());
             if let Some(ref value) = self.node.value {
@@ -280,32 +300,31 @@ impl<'a, V: 'a> IterPath<'a, V> {
     }
 }
 
-pub struct Matches<'a, V: 'a> {
-    result: Option<(String, Iter<'a, V>)>
+pub struct Matches<'a, K: 'a + KeyComponent, V: 'a> {
+    result: Option<(Vec<K>, Iter<'a, K, V>)>
 }
 
-impl<'a, V: 'a> Matches<'a, V> {
-    fn found(prefix: String, node: &'a Node<V>) -> Matches<'a, V> {
+impl<'a, K: 'a + KeyComponent, V: 'a> Matches<'a, K, V> {
+    fn found(prefix: Vec<K>, node: &'a Node<K, V>) -> Matches<'a, K, V> {
         Matches {
             result: Some((prefix, node.iter())),
         }
     }
 
-    fn none() -> Matches<'a, V> {
+    fn none() -> Matches<'a, K, V> {
         Matches {
             result: None,
         }
     }
 }
 
-impl<'a, V: 'a> Iterator for Matches<'a, V> {
-    type Item = (String, &'a V);
+impl<'a, K: 'a + KeyComponent, V: 'a> Iterator for Matches<'a, K, V> {
+    type Item = (Vec<K>, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.result.as_mut().and_then(|&mut (ref prefix, ref mut it)| {
             it.next().map(|(mut s, v)| {
-                // prepend the common prefix
-                s.insert_str(0, prefix);
+                s.add_prefix(prefix);
 
                 (s, v)
             })
@@ -319,85 +338,85 @@ mod tests {
 
     #[test]
     fn it_can_be_constructed() {
-        let t = Tree::<()>::new();
+        let t = Tree::<(), ()>::new();
         assert!(t.is_empty());
     }
 
     #[test]
     fn it_maps_elements() {
-        let mut t = Tree::new();
-        t.insert("abc", 0);
-        t.insert("others", 1);
-        t.insert("other", 2);
-        t.insert("othello", 3);
+        let mut t = Tree::<u8, i32>::new();
+        t.insert(b"abc", 0);
+        t.insert(b"others", 1);
+        t.insert(b"other", 2);
+        t.insert(b"othello", 3);
 
-        assert_eq!(t.get("abc"), Some(&0));
-        assert_eq!(t.get("others"), Some(&1));
-        assert_eq!(t.get("other"), Some(&2));
-        assert_eq!(t.get("othello"), Some(&3));
+        assert_eq!(t.get(b"abc"), Some(&0));
+        assert_eq!(t.get(b"others"), Some(&1));
+        assert_eq!(t.get(b"other"), Some(&2));
+        assert_eq!(t.get(b"othello"), Some(&3));
     }
 
     #[test]
     fn it_is_empty_after_being_cleared() {
         let mut t = Tree::new();
-        t.insert("foo", ());
-        t.insert("bar", ());
-        t.insert("baz", ());
+        t.insert(b"foo", ());
+        t.insert(b"bar", ());
+        t.insert(b"baz", ());
 
         // before clear
         assert!(!t.is_empty());
-        assert!(t.get("foo").is_some());
-        assert!(t.get("bar").is_some());
-        assert!(t.get("baz").is_some());
+        assert!(t.get(b"foo").is_some());
+        assert!(t.get(b"bar").is_some());
+        assert!(t.get(b"baz").is_some());
 
         t.clear();
 
         // after clear
         assert!(t.is_empty());
-        assert!(t.get("foo").is_none());
-        assert!(t.get("bar").is_none());
-        assert!(t.get("baz").is_none());
+        assert!(t.get(b"foo").is_none());
+        assert!(t.get(b"bar").is_none());
+        assert!(t.get(b"baz").is_none());
     }
 
     #[test]
     fn it_handles_adding_existing_parts() {
-        let mut t = Tree::new();
-        t.insert("abc", "long");
-        t.insert("ab", "shorter");
-        t.insert("a", "short");
+        let mut t: Tree<u8, &'static str> = Tree::new();
+        t.insert(b"abc", "long");
+        t.insert(b"ab", "shorter");
+        t.insert(b"a", "short");
 
-        assert_eq!(t.get("abc").map(|s| s.to_string()), Some("long".to_string()));
-        assert_eq!(t.get("ab").map(|s| s.to_string()), Some("shorter".to_string()));
-        assert_eq!(t.get("a").map(|s| s.to_string()), Some("short".to_string()));
+        assert_eq!(t.get(b"abc").map(|s| s.to_string()), Some("long".to_string()));
+        assert_eq!(t.get(b"ab").map(|s| s.to_string()), Some("shorter".to_string()));
+        assert_eq!(t.get(b"a").map(|s| s.to_string()), Some("short".to_string()));
     }
 
     #[test]
     fn it_can_remove_keys() {
         let mut t = Tree::new();
-        t.insert("abc", "long");
-        t.insert("ab", "shorter");
-        t.insert("a", "short");
+        t.insert(b"abc", "long");
+        t.insert(b"ab", "shorter");
+        t.insert(b"a", "short");
 
-        t.remove("ab");
-        assert_eq!(t.get("ab"), None);
+        t.remove(b"ab");
+        assert_eq!(t.get(b"ab"), None);
 
-        t.remove("abc");
-        assert_eq!(t.get("abc"), None);
+        t.remove(b"abc");
+        assert_eq!(t.get(b"abc"), None);
 
-        t.remove("a");
-        assert_eq!(t.get("a"), None);
+        t.remove(b"a");
+        assert_eq!(t.get(b"a"), None);
 
         assert!(t.is_empty());
     }
 
     #[test]
     fn it_can_iterate_on_items() {
-        let items = vec![
-            ("abc", 0),
-            ("ac",  1),
-            ("bc",  2),
-            ("a",   3),
-            ("ab",  4),
+        let items: Vec<(&'static [u8], i32)> = vec![
+            (b"abc", 0),
+            (b"ac",  1),
+            (b"bc",  2),
+            (b"a",   3),
+            (b"ab",  4),
         ];
 
         let mut tree = Tree::new();
@@ -412,7 +431,7 @@ mod tests {
         let mut got_items: Vec<_> = tree.iter().map(|(k, v)| (k, *v)).collect();
         got_items.sort();
 
-        let mut items: Vec<_> = items.iter().map(|&(k, v)| (k.to_string(), v)).collect();
+        let mut items: Vec<_> = items.iter().map(|&(k, v)| (k.to_owned(), v)).collect();
         items.sort();
 
         assert_eq!(got_items, items);
@@ -420,15 +439,15 @@ mod tests {
 
     #[test]
     fn it_can_complete_a_prefix() {
-        let items = vec![
-            "apes",
-            "apples",
-            "apricots",
-            "asteroids",
-            "babies",
-            "bananas",
-            "glasses",
-            "oranges",
+        let items: Vec<&'static [u8]> = vec![
+            b"apes",
+            b"apples",
+            b"apricots",
+            b"asteroids",
+            b"babies",
+            b"bananas",
+            b"glasses",
+            b"oranges",
         ];
 
         let t = {
@@ -439,16 +458,17 @@ mod tests {
             t
         };
 
-        let matches: Vec<_> = t.find("ap").map(|(k, _)| k).collect();
-        assert_eq!(matches, vec!["apes", "apples", "apricots"]);
+        let matches: Vec<_> = t.find(b"ap").map(|(k, _)| k).collect();
+        let expected: Vec<&'static [u8]> = vec![b"apes", b"apples", b"apricots"];
+        assert_eq!(matches, expected);
     }
 
     #[test]
     fn it_has_sorted_iterators() {
-        let items = vec![
-            "c",
-            "b",
-            "a",
+        let items: Vec<&'static [u8]> = vec![
+            b"c",
+            b"b",
+            b"a",
         ];
 
         let mut tree = Tree::new();
@@ -457,6 +477,7 @@ mod tests {
         }
 
         let found: Vec<_> = tree.iter().map(|(k, _)| k).collect();
-        assert_eq!(found, vec!["a", "b", "c"]);
+        let expected: Vec<&'static [u8]> = vec![b"a", b"b", b"c"];
+        assert_eq!(found, expected);
     }
 }
