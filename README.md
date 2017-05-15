@@ -1,8 +1,8 @@
 panoradix
 =========
 
-My take on implementing a [Radix tree][], for usage when large data mappings with
-strings as indices.
+My take on implementing a [Radix tree][], for usage when large data mappings
+with slices as indices.
 
 [![Travis badge](https://travis-ci.org/jmcomets/panoradix.svg?branch=master)](https://travis-ci.org/jmcomets/panoradix)
 [![crates.io badge](https://img.shields.io/crates/v/panoradix.svg)](https://crates.io/crates/panoradix)
@@ -14,8 +14,8 @@ changes every time the version is bumped.
 
 ## What's in this repo?
 
-- [RadixMap][], a key-value map where the key is necessarily a string.
-- [RadixSet][], a set of strings.
+- [RadixMap][], a key-value map.
+- [RadixSet][], a set of keys.
 
 Both are backed by a [Radix tree][].
 
@@ -30,15 +30,13 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 - [ ] intersection: should be straightforward
 - [ ] union: since there can't be multiple values, merging two values with the
              same key should be annoying
-- [ ] take arbitrary keys instead of strings: had a go trying to implement this
-      early on, but the API transparency between `&str` and `String` is so damn
-      gorgeous that I've postponed this indefinitely
 - [x] faster edge search: currently linear, should probably be binary search
   - can be found on the [binary-search-edges][] branch, needs to be
     optimized as benches show slower runs using binary search instead of linear
 
 ### What's just been finished?
 
+- [x] take arbitrary keys instead of strings
 - [x] faster iteration: tree iterators were hacked together and abuses
                         heap allocation/recursion, now use a faster structure
 - [x] clearing: `clear()` on both map/set
