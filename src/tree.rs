@@ -181,10 +181,7 @@ impl<K: KeyComponent, V> Edge<K, V> {
         let mut node = Node::new();
         node.value = value;
 
-        Edge {
-            prefix: prefix,
-            node: node,
-        }
+        Edge { prefix, node }
     }
 
     fn split_insert(&mut self, i: usize, key: &[K], value: V) {
@@ -293,7 +290,7 @@ struct IterPath<'a, K: 'a + KeyComponent, V: 'a> {
 impl<'a, K: 'a + KeyComponent, V: 'a> IterPath<'a, K, V> {
     fn from_node(node: &'a Node<K, V>) -> IterPath<'a, K, V> {
         IterPath {
-            node: node,
+            node,
             prefix: Cow::default(),
             edge_iter: None,
         }

@@ -202,7 +202,7 @@ impl<K: Key + ?Sized, T: AsRef<K>> FromIterator<T> for RadixSet<K> {
 }
 
 /// An iterator over a `RadixSet`'s entries.
-pub type Iter<'a, K: 'a + Key + ?Sized> = MapKeys<'a, K, ()>;
+pub type Iter<'a, K> = MapKeys<'a, K, ()>;
 
 /// An iterator over the elements matching a call to [`find`].
 ///

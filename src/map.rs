@@ -313,7 +313,7 @@ impl<K, V, T> FromIterator<(T, V)> for RadixMap<K, V>
             tree.insert(t.as_ref().as_slice(), v);
         }
 
-        RadixMap { tree: tree }
+        RadixMap { tree }
     }
 }
 

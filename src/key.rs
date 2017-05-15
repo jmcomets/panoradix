@@ -4,7 +4,7 @@ impl<T: Ord + Eq + Clone> KeyComponent for T {}
 pub trait Key: ToOwned {
     type Component: KeyComponent;
 
-    fn as_slice<'a>(&'a self) -> &'a [Self::Component];
+    fn as_slice(&self) -> &[Self::Component];
 
     fn from_vec(v: Vec<Self::Component>) -> Self::Owned;
 }
@@ -12,7 +12,7 @@ pub trait Key: ToOwned {
 impl Key for str {
     type Component = u8;
 
-    fn as_slice<'a>(&'a self) -> &'a [u8] {
+    fn as_slice(&self) -> &[u8] {
         self.as_bytes()
     }
 
@@ -26,7 +26,7 @@ impl Key for str {
 impl<T: KeyComponent> Key for [T] {
     type Component = T;
 
-    fn as_slice<'a>(&'a self) -> &'a [T] {
+    fn as_slice(&self) -> &[T] {
         self
     }
 
@@ -46,7 +46,7 @@ pub trait ExtensibleKey: ToOwned {
     type Component: KeyComponent;
 
     /// Get a slice of key components to integrate the key in a radix tree.
-    fn as_slice<'a>(&'a self) -> &'a [Self::Component];
+    fn as_slice(&self) -> &[Self::Component];
 
     /// Given a merged vec of components, build an owned.
     fn from_vec(v: Vec<Self::Component>) -> Self::Owned;
@@ -55,7 +55,7 @@ pub trait ExtensibleKey: ToOwned {
 impl<T: ExtensibleKey> Key for T {
     type Component = T::Component;
 
-    fn as_slice<'a>(&'a self) -> &'a [Self::Component] {
+    fn as_slice(&self) -> &[Self::Component] {
         self.as_slice()
     }
 
