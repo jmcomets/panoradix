@@ -72,9 +72,9 @@ impl<K: KeyComponent, V> Node<K, V> {
 
     pub fn insert(&mut self, key: &[K], value: V) -> Option<V> {
         if key.is_empty() {
-            let old_value = self.value.take();
-            self.value = Some(value);
-            old_value
+            let mut value = Some(value);
+            mem::swap(&mut self.value, &mut value);
+            value
         } else {
             if let Some((i, cmp)) = self.search_for_prefix(key) {
                 match cmp {
