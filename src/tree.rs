@@ -1,6 +1,6 @@
 use std::mem;
 use std::slice;
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 
 use key::KeyComponent;
 
@@ -50,7 +50,7 @@ impl<K: KeyComponent, V> Node<K, V> {
         if key.is_empty() {
             self.value.as_ref()
         } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
-            self.edges[i].node.get(suffix.borrow())
+            self.edges[i].node.get(&suffix)
         } else {
             None
         }
@@ -66,7 +66,7 @@ impl<K: KeyComponent, V> Node<K, V> {
                 match cmp {
                     // Full prefix: insert in the child
                     PrefixCmp::Full(suffix) => {
-                        return self.edges[i].node.insert(suffix.borrow(), value);
+                        return self.edges[i].node.insert(&suffix, value);
                     },
 
                     // Partial prefix: split the key and replace the edge's node with a new one
@@ -98,7 +98,7 @@ impl<K: KeyComponent, V> Node<K, V> {
         } else if let Some((i, cmp)) = self.search_for_prefix(key) {
             match cmp {
                 PrefixCmp::Full(suffix) => {
-                    let ret = self.edges[i].node.remove(suffix.borrow());
+                    let ret = self.edges[i].node.remove(&suffix);
 
                     if self.edges[i].node.is_empty() {
                         self.edges.remove(i);
@@ -244,7 +244,7 @@ impl<'a, K: KeyComponent, V: 'a> Iterator for Iter<'a, K, V> {
                         return Some((self.prefix.clone(), value));
                     },
                     Err(elem) => {
-                        self.prefix.add_suffix(elem.prefix.borrow());
+                        self.prefix.add_suffix(&elem.prefix);
                         self.path.push(elem);
                     },
                 }
