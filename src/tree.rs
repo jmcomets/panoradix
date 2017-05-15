@@ -10,6 +10,20 @@ trait PrefixExt<K> {
     fn add_prefix(&mut self, other: &[K]);
 
     fn add_suffix(&mut self, other: &[K]);
+
+    fn with_prefix(mut self, other: &[K]) -> Self
+        where Self: Sized,
+    {
+        self.add_prefix(other);
+        self
+    }
+
+    fn with_suffix(mut self, other: &[K]) -> Self
+        where Self: Sized,
+    {
+        self.add_suffix(other);
+        self
+    }
 }
 
 impl<K: Clone> PrefixExt<K> for Vec<K> {
@@ -117,23 +131,12 @@ impl<K: KeyComponent, V> Node<K, V> {
         self.find_subtree(key, Vec::new())
     }
 
-    fn find_subtree<'a>(&'a self, key: &[K], mut prefix: Vec<K>) -> Matches<'a, K, V> {
+    fn find_subtree<'a>(&'a self, key: &[K], prefix: Vec<K>) -> Matches<'a, K, V> {
         if key.is_empty() {
             Matches::found(prefix, self)
         } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
-            // concatenate the prefix used to get here with the current full prefix
-            let new_prefix = {
-                if suffix.is_empty() {
-                    key
-                } else {
-                    let (p, _) = key.split_at(key.len() - suffix.len());
-                    p
-                }
-            };
-
-            prefix.add_suffix(new_prefix);
-
-            self.edges[i].node.find_subtree(suffix.borrow(), prefix)
+            let prefix = prefix.with_suffix(&key[..key.len()-suffix.len()]);
+            self.edges[i].node.find_subtree(&suffix, prefix)
         } else {
             Matches::none()
         }
