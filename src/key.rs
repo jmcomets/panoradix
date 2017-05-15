@@ -17,7 +17,9 @@ impl Key for str {
     }
 
     fn from_vec(v: Vec<u8>) -> String {
-        String::from_utf8(v).unwrap()
+        unsafe {
+            String::from_utf8_unchecked(v)
+        }
     }
 }
 
