@@ -11,8 +11,5 @@ keywords = ["data-structure", "radix-tree"]
 categories = ["data-structures"]
 readme = "README.md"
 
-[dependencies]
-clippy = {version = "0.0.131", optional = true}
-
 [features]
 default = []

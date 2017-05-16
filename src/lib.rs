@@ -4,10 +4,6 @@
 
 #![deny(missing_docs)]
 
-// Clippy lints
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-
 pub use map::RadixMap;
 pub use set::RadixSet;
 pub use key::ExtensibleKey as RadixKey;
