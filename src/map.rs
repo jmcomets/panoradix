@@ -10,7 +10,23 @@ use key::Key;
 
 /// A map based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
 ///
-/// TODO: section on benefits/drawbacks of using a Radix tree
+/// Radix trees are a implementation of the [Trie](https://en.wikipedia.org/wiki/Trie) data
+/// structure, where any node can have N edges, and the keys are split on the edges to save memory.
+/// There are no duplicate keys and values aren't only stored on the leaves of the tree.
+///
+/// This structure has the advantage of being fairly memory-efficient by compromising on key
+/// insertion speed. There is also quite a bit of fragmentation due to the abundance of heap memory
+/// usage in both the tree's structure and the data it contains.
+///
+/// You should probably only use this if you need to search by prefix in a large dataset of
+/// strings. Consider using a sorted tree structure, such as a
+/// [`BTreeMap`](https://doc.rust-lang.org/std/collections/struct.BTreeMap.html) or any
+/// implementation of a [Binary tree](https://en.wikipedia.org/wiki/Binary_tree) available on
+/// [crates.io](https://crates.io/search?q=binary%20tree).
+///
+/// The `Key` trait is left private for safety (see the implementation for `str` for an
+/// explanation). You can think of it as an abstraction over both `T` slices and `str` slices.
+/// Therefore when specifying the type of `K`, you'll give either `[T]` or `str`.
 pub struct RadixMap<K: Key + ?Sized, V> {
     tree: Tree<<K as Key>::Component, V>,
 }
