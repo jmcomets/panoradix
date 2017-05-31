@@ -2,6 +2,8 @@
 //! tree](https://en.wikipedia.org/wiki/Radix_tree) data structure, optimized for indexing strings
 //! "by prefix".
 
+#![deny(missing_docs)]
+
 // Clippy lints
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
