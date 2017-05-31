@@ -1,6 +1,6 @@
 [package]
 name = "panoradix"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Jean-Marie Comets <jean.marie.comets@gmail.com>"]
 description = "A generic map and a set, both backed by a Radix tree."
 license = "MIT"

@@ -86,10 +86,10 @@ impl<K: Key + ?Sized> RadixSet<K> {
     ///
     /// let mut set = RadixSet::new();
     /// set.insert("a");
-    /// assert_eq!(set.has_key("a"), true);
-    /// assert_eq!(set.has_key("b"), false);
+    /// assert_eq!(set.contains("a"), true);
+    /// assert_eq!(set.contains("b"), false);
     /// ```
-    pub fn has_key(&self, key: &K) -> bool {
+    pub fn contains(&self, key: &K) -> bool {
         self.map.get(key).is_some()
     }
 
@@ -129,7 +129,7 @@ impl<K: Key + ?Sized> RadixSet<K> {
         self.map.remove(key).is_some()
     }
 
-    /// Gets an iterator over the keys of the map (sorted).
+    /// Gets an iterator over the keys inserted (sorted).
     ///
     /// # Examples
     ///
@@ -143,22 +143,15 @@ impl<K: Key + ?Sized> RadixSet<K> {
     /// set.insert("b");
     /// set.insert("a");
     ///
-    /// for key in set.keys() {
+    /// for key in set.iter() {
     ///     println!("{}", key);
     /// }
     ///
-    /// let first_key = set.keys().next().unwrap();
+    /// let first_key = set.iter().next().unwrap();
     /// assert_eq!(first_key, "a".to_string());
     /// ```
-    pub fn keys(&self) -> Keys<K> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, K> {
         self.map.keys()
-    }
-
-    /// Gets an iterator over the keys of the map (sorted).
-    ///
-    /// This method is strictly equivalent to the `keys()` method.
-    pub fn iter(&self) -> Iter<K> {
-        self.keys()
     }
 
     /// Gets an iterator over a filtered subset of the set (sorted).
@@ -208,11 +201,8 @@ impl<K: Key + ?Sized, T: AsRef<K>> FromIterator<T> for RadixSet<K> {
     }
 }
 
-/// An iterator over a `RadixSet`'s keys.
-pub type Keys<'a, K: 'a + Key + ?Sized> = MapKeys<'a, K, ()>;
-
-/// An alias for `Keys`.
-pub type Iter<'a, K: 'a + Key + ?Sized> = Keys<'a, K>;
+/// An iterator over a `RadixSet`'s entries.
+pub type Iter<'a, K: 'a + Key + ?Sized> = MapKeys<'a, K, ()>;
 
 pub struct Matches<'a, K: 'a + Key + ?Sized> {
     iter: MapMatches<'a, K, ()>,
@@ -266,7 +256,7 @@ mod tests {
 
         let set: RadixSet<str> = items.iter().collect();
 
-        assert!(items.iter().all(|k| set.has_key(k)))
+        assert!(items.iter().all(|k| set.contains(k)))
     }
 
     #[test]
@@ -276,7 +266,7 @@ mod tests {
         map.insert("bar");
         map.insert("baz");
 
-        let keys: Vec<_> = map.keys().collect();
+        let keys: Vec<_> = map.iter().collect();
         assert_eq!(keys, vec!["bar", "baz", "foo"]);
     }
 }

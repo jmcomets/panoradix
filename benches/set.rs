@@ -14,7 +14,7 @@ fn basic_lookup(b: &mut Bencher) {
     let s: RadixSet<str> = items.iter().collect();
     b.iter(|| {
         for item in items.iter() {
-            s.has_key(item);
+            s.contains(item);
         }
     });
 }
@@ -25,9 +25,9 @@ fn lookup_with_close_items(b: &mut Bencher) {
 
     let s: RadixSet<str> = items.iter().collect();
     b.iter(|| {
-        s.has_key("a-needle");
-        s.has_key("j-needle");
-        s.has_key("z-needle");
+        s.contains("a-needle");
+        s.contains("j-needle");
+        s.contains("z-needle");
     });
 }
 
