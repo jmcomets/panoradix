@@ -150,7 +150,7 @@ impl<K: Key + ?Sized> RadixSet<K> {
     /// let first_key = set.iter().next().unwrap();
     /// assert_eq!(first_key, "a".to_string());
     /// ```
-    pub fn iter<'a>(&'a self) -> Iter<'a, K> {
+    pub fn iter(&self) -> Iter<K> {
         self.map.keys()
     }
 
