@@ -10,7 +10,8 @@ use key::Key;
 
 /// A set based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
 ///
-/// TODO: section on benefits/drawbacks of using a Radix tree
+/// See [`RadixMap`](struct.RadixMap.html) for an in-depth explanation of the workings of this
+/// struct, as it's simply a wrapper around `RadixMap<K, ()>`.
 pub struct RadixSet<K: Key + ?Sized> {
     map: RadixMap<K, ()>,
 }
