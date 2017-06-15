@@ -134,9 +134,20 @@ impl<K: KeyComponent, V> Node<K, V> {
     fn find_subtree<'a>(&'a self, key: &[K], prefix: Vec<K>) -> Matches<'a, K, V> {
         if key.is_empty() {
             Matches::found(prefix, self)
-        } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
-            let prefix = prefix.with_suffix(&key[..key.len()-suffix.len()]);
-            self.edges[i].node.find_subtree(&suffix, prefix)
+        } else if let Some((i, cmp)) = self.search_for_prefix(key) {
+            let (key_prefix, key_suffix) = match cmp {
+                PrefixCmp::Full(suffix) => {
+                    let suffix_len = suffix.len();
+                    (&key[..key.len() - suffix_len], suffix)
+                }
+
+                PrefixCmp::Partial(_) => {
+                    let suffix = self.edges[i].prefix.as_slice();
+                    (suffix, Cow::default())
+                }
+            };
+
+            self.edges[i].node.find_subtree(&key_suffix, prefix.with_suffix(key_prefix))
         } else {
             Matches::none()
         }
@@ -326,11 +337,7 @@ impl<'a, K: 'a + KeyComponent, V: 'a> Iterator for Matches<'a, K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.result.as_mut().and_then(|&mut (ref prefix, ref mut it)| {
-            it.next().map(|(mut s, v)| {
-                s.add_prefix(prefix);
-
-                (s, v)
-            })
+            it.next().map(|(s, v)| (s.with_prefix(prefix), v))
         })
     }
 }
@@ -464,6 +471,16 @@ mod tests {
         let matches: Vec<_> = t.find(b"ap").map(|(k, _)| k).collect();
         let expected: Vec<&'static [u8]> = vec![b"apes", b"apples", b"apricots"];
         assert_eq!(matches, expected);
+    }
+
+    #[test]
+    fn it_completes_partial_matches() {
+        let mut set: Tree<u8, ()> = Tree::new();
+        set.insert(b"a", ());
+        set.insert(b"abc", ());
+
+        let matches: Vec<_> = set.find(b"ab").map(|(x, _)| x).collect();
+        assert_eq!(matches, vec![b"abc".to_owned()]);
     }
 
     #[test]
