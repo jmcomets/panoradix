@@ -10,6 +10,7 @@
 
 pub use map::RadixMap;
 pub use set::RadixSet;
+pub use key::ExtensibleKey as RadixKey;
 
 /// Module containing a map based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
 pub mod map;
