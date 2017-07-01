@@ -323,6 +323,9 @@ impl<'a, K: 'a + Key + ?Sized, V: 'a> Iterator for Values<'a, K, V> {
     }
 }
 
+/// An iterator over the elements matching a call to [`find`].
+///
+/// [`find`]: struct.RadixMap.html#method.find
 pub struct Matches<'a, K: 'a + Key + ?Sized, V: 'a> {
     matches: TreeMatches<'a, K::Component, V>,
 }

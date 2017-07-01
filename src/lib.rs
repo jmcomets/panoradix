@@ -11,8 +11,11 @@
 pub use map::RadixMap;
 pub use set::RadixSet;
 
-mod map;
-mod key;
-mod set;
+/// Module containing a map based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
+pub mod map;
 
+/// Module containing a set based on a [Radix tree](https://en.wikipedia.org/wiki/Radix_tree).
+pub mod set;
+
+mod key;
 mod tree;

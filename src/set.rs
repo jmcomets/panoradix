@@ -204,6 +204,9 @@ impl<K: Key + ?Sized, T: AsRef<K>> FromIterator<T> for RadixSet<K> {
 /// An iterator over a `RadixSet`'s entries.
 pub type Iter<'a, K: 'a + Key + ?Sized> = MapKeys<'a, K, ()>;
 
+/// An iterator over the elements matching a call to [`find`].
+///
+/// [`find`]: struct.RadixSet.html#method.find
 pub struct Matches<'a, K: 'a + Key + ?Sized> {
     iter: MapMatches<'a, K, ()>,
 }
