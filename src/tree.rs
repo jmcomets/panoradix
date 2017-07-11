@@ -63,7 +63,7 @@ impl<K: KeyComponent, V> Node<K, V> {
     pub fn get(&self, key: &[K]) -> Option<&V> {
         if key.is_empty() {
             self.value.as_ref()
-        } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
+        } else if let (i, Some(PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
             self.edges[i].node.get(&suffix)
         } else {
             None
@@ -76,7 +76,9 @@ impl<K: KeyComponent, V> Node<K, V> {
             mem::swap(&mut self.value, &mut value);
             value
         } else {
-            if let Some((i, cmp)) = self.search_for_prefix(key) {
+            let (i, cmp) = self.search_for_prefix(key);
+
+            if let Some(cmp) = cmp {
                 match cmp {
                     // Full prefix: insert in the child
                     PrefixCmp::Full(suffix) => {
@@ -92,9 +94,6 @@ impl<K: KeyComponent, V> Node<K, V> {
             } else {
                 // No match in edges: insert a new edge
                 let new_edge = Edge::new(key.to_owned(), Some(value));
-
-                // TODO: this should be revamped along with `search_for_prefix`
-                let i = self.edges.binary_search_by(|e| e.prefix.as_slice().cmp(key)).unwrap_err();
                 self.edges.insert(i, new_edge);
             }
 
@@ -109,7 +108,7 @@ impl<K: KeyComponent, V> Node<K, V> {
     pub fn remove(&mut self, key: &[K]) -> Option<V> {
         if key.is_empty() {
             self.value.take()
-        } else if let Some((i, cmp)) = self.search_for_prefix(key) {
+        } else if let (i, Some(cmp)) = self.search_for_prefix(key) {
             match cmp {
                 PrefixCmp::Full(suffix) => {
                     let ret = self.edges[i].node.remove(&suffix);
@@ -134,7 +133,7 @@ impl<K: KeyComponent, V> Node<K, V> {
     fn find_subtree<'a>(&'a self, key: &[K], prefix: Vec<K>) -> Matches<'a, K, V> {
         if key.is_empty() {
             Matches::found(prefix, self)
-        } else if let Some((i, cmp)) = self.search_for_prefix(key) {
+        } else if let (i, Some(cmp)) = self.search_for_prefix(key) {
             let (key_prefix, key_suffix) = match cmp {
                 PrefixCmp::Full(suffix) => {
                     let suffix_len = suffix.len();
@@ -153,11 +152,29 @@ impl<K: KeyComponent, V> Node<K, V> {
         }
     }
 
-    fn search_for_prefix<'a>(&self, key: &'a [K]) -> Option<(usize, PrefixCmp<'a, K>)> {
-        self.edges.iter()
-            .enumerate()
-            .flat_map(|(i, e)| cmp_prefix(&e.prefix, key).map(|cmp| (i, cmp)))
-            .next()
+    fn search_for_prefix<'a>(&self, key: &'a [K]) -> (usize, Option<PrefixCmp<'a, K>>) {
+        match self.edges.binary_search_by(|e| e.prefix.as_slice().cmp(key)) {
+            Ok(i) => {
+                (i, Some(PrefixCmp::Full(Cow::default())))
+            },
+            Err(i) => {
+                if i > 0 {
+                    let ref previous = self.edges[i - 1];
+                    if let Some(cmp) = cmp_prefix(&previous.prefix, key) {
+                        return (i - 1, Some(cmp));
+                    }
+                }
+
+                if i < self.edges.len() {
+                    let ref current = self.edges[i];
+                    if let Some(cmp) = cmp_prefix(&current.prefix, key) {
+                        return (i, Some(cmp));
+                    }
+                }
+
+                (i, None)
+            }
+        }
     }
 }
 
