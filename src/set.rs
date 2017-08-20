@@ -221,6 +221,7 @@ impl<'a, K: 'a + Key + ?Sized> Iterator for Matches<'a, K> {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::FromIterator;
     use super::RadixSet;
 
     #[test]
@@ -264,12 +265,30 @@ mod tests {
 
     #[test]
     fn it_has_a_key_iterator() {
-        let mut map = RadixSet::<str>::new();
-        map.insert("foo");
-        map.insert("bar");
-        map.insert("baz");
+        let mut set = RadixSet::<str>::new();
+        set.insert("foo");
+        set.insert("bar");
+        set.insert("baz");
 
-        let keys: Vec<_> = map.iter().collect();
+        let keys: Vec<_> = set.iter().collect();
         assert_eq!(keys, vec!["bar", "baz", "foo"]);
+    }
+
+    #[test]
+    fn it_can_complete_keys() {
+        let v = vec!["foo", "bar", "baz"];
+        let set: RadixSet<str> = RadixSet::from_iter(v);
+
+        assert_eq!(set.find("ba").collect::<Vec<_>>(), vec!["bar", "baz"]);
+    }
+
+    #[test]
+    fn it_can_remove_keys() {
+        let v = vec!["foo", "bar", "baz"];
+        let mut set: RadixSet<str> = RadixSet::from_iter(v);
+
+        set.remove("bar");
+        assert!(!set.contains("bar"));
+        assert!(set.contains("baz"));
     }
 }

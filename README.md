@@ -9,9 +9,6 @@ with slices as indices.
 
 [Documentation][]
 
-Note: this is currently a **work in progress**, expect unannounced brutal API
-changes every time the version is bumped.
-
 ## What's in this repo?
 
 - [RadixMap][], a key-value map.
@@ -19,29 +16,48 @@ changes every time the version is bumped.
 
 Both are backed by a [Radix tree][].
 
-## What's being worked on?
+Any slice of elements that are `Ord + Eq + Clone` can be used as keys, as well
+as `str` that are taken as byte slices. Any lookups are done using a `&[T]` and
+iteration will yield an owned `Vec<T>` each time (for `str` it will yield
+`String` items).
 
-A lot is missing right now, here's a wishlist sorted by difficulty/want:
+Further extension of keys is possible but not recommended since the keys are
+arguably always a `[T]`. If you really want to do this, have a look at the
+`ExtensibleKey` trait.
 
-- [ ] map iterators: `values_mut()`
-- [ ] intersection: should be straightforward
-- [ ] union: since there can't be multiple values, merging two values with the
-             same key should be annoying
-- [x] faster edge search: currently linear, should probably be binary search
-  - can be found on the [binary-search-edges][] branch, needs to be
-    optimized as benches show slower runs using binary search instead of linear
+## Examples
 
-### What's just been finished?
+### Insert / Lookup
 
-- [x] documentation: should follow the [API guidelines](https://github.com/brson/rust-api-guidelines)
-- [x] take arbitrary keys instead of strings
-- [x] faster iteration: tree iterators were hacked together and abuses
-                        heap allocation/recursion, now use a faster structure
-- [x] clearing: `clear()` on both map/set
-- [x] fitering elements: `find()` on both map/set
-- [x] erasing a key: `remove()` on both map/set
-- [x] set iterators: `keys()`
-- [x] map iterators: `keys()`, `values()` and `iter()`
+```rust
+let mut map: RadixMap<str, i32> = RadixMap::new();
+map.insert("a", 0);
+map.insert("ac", 1);
+
+assert_eq!(map.get("a"), Some(&0));
+assert_eq!(map.get("ac"), Some(&1));
+assert_eq!(map.get("ab"), None);
+```
+
+### Removal
+
+```rust
+let v = vec!["foo", "bar", "baz"];
+let mut set: RadixSet<str> = RadixSet::from_iter(v);
+
+set.remove("bar");
+assert!(!set.contains("bar"));
+assert!(set.contains("baz"));
+```
+
+### Completion
+
+```rust
+let v = vec!["foo", "bar", "baz"];
+let set: RadixSet<str> = RadixSet::from_iter(v);
+
+assert_eq!(set.find("ba").collect::<Vec<_>>(), vec!["bar", "baz"]);
+```
 
 [Radix tree]: https://en.wikipedia.org/wiki/Radix_tree
 
@@ -49,5 +65,3 @@ A lot is missing right now, here's a wishlist sorted by difficulty/want:
 
 [RadixMap]: https://github.com/jmcomets/panoradix/blob/master/src/map.rs
 [RadixSet]: https://github.com/jmcomets/panoradix/blob/master/src/set.rs
-
-[binary-search-edges]: https://github.com/jmcomets/panoradix/tree/binary-search-edges
