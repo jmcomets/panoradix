@@ -1,6 +1,6 @@
 [package]
 name = "panoradix"
-version = "0.6.3"
+version = "0.6.4"
 authors = ["Jean-Marie Comets <jean.marie.comets@gmail.com>"]
 description = "A generic map and a set, both backed by a Radix tree."
 license = "MIT"
@@ -9,6 +9,7 @@ repository = "https://github.com/jmcomets/panoradix"
 documentation = "https://docs.rs/panoradix"
 keywords = ["data-structure", "radix-tree"]
 categories = ["data-structures"]
+readme = "README.md"
 
 [dependencies]
 clippy = {version = "0.0.131", optional = true}
