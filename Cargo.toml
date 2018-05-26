@@ -12,7 +12,11 @@ categories = ["data-structures"]
 readme = "README.md"
 
 [dependencies]
-clippy = {version = "0.0.131", optional = true}
+clippy = { version = "0.0.205", optional = true }
+
+[dev-dependencies]
+proptest = "0.7.0"
+rand = "0.5.0"
 
 [features]
 default = []
