@@ -163,12 +163,12 @@ impl<K: KeyComponent, V> Node<K, V> {
 
 struct Edge<K: KeyComponent, V> {
     prefix: Vec<K>,
-    node: Box<Node<K, V>>,
+    node: Node<K, V>,
 }
 
 impl<K: KeyComponent, V> Edge<K, V> {
     fn new(prefix: Vec<K>, value: Option<V>) -> Edge<K, V> {
-        let mut node = Box::new(Node::new());
+        let mut node = Node::new();
         node.value = value;
 
         Edge {
