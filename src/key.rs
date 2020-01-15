@@ -39,8 +39,8 @@ impl<T: KeyComponent> Key for [T] {
 ///
 /// These keys should be equivalent to slices of `T: Ord + Eq + Clone`.
 ///
-/// [`RadixSet`]: struct.RadixSet.html
-/// [`RadixMap`]: struct.RadixMap.html
+/// [`RadixSet`]: set/struct.RadixSet.html
+/// [`RadixMap`]: map/struct.RadixMap.html
 pub trait ExtensibleKey: ToOwned {
     /// A single component of the key. Note that it should be `Ord + Eq + Clone`.
     type Component: KeyComponent;
