@@ -65,3 +65,9 @@ assert_eq!(set.find("ba").collect::<Vec<_>>(), vec!["bar", "baz"]);
 
 [RadixMap]: https://github.com/jmcomets/panoradix/blob/master/src/map.rs
 [RadixSet]: https://github.com/jmcomets/panoradix/blob/master/src/set.rs
+
+## Contributing
+
+I try to maintain a list of things that need to be worked on [over
+here](https://github.com/jmcomets/panoradix/blob/master/TODO.md). Issues / PRs
+are always welcome!
