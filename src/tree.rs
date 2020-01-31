@@ -4,7 +4,60 @@ use std::borrow::Cow;
 
 use key::KeyComponent;
 
-pub type Tree<K, V> = Node<K, V>;
+pub struct Tree<K: KeyComponent, V> {
+    root: Node<K, V>,
+    len: usize,
+}
+
+impl<K: KeyComponent, V> Tree<K, V> {
+    pub fn new() -> Tree<K, V> {
+        Tree {
+            root: Node::new(),
+            len: 0,
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.root.clear();
+        self.len = 0;
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.root.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn get(&self, key: &[K]) -> Option<&V> {
+        self.root.get(key)
+    }
+
+    pub fn insert(&mut self, key: &[K], value: V) -> Option<V> {
+        let old_value = self.root.insert(key, value);
+        if old_value.is_none() {
+            self.len += 1;
+        }
+        old_value
+    }
+
+    pub fn iter(&self) -> Iter<K, V> {
+        self.root.iter()
+    }
+
+    pub fn remove(&mut self, key: &[K]) -> Option<V> {
+        let old_value = self.root.remove(key);
+        if old_value.is_some() {
+            self.len -= 1;
+        }
+        old_value
+    }
+
+    pub fn find<'a>(&'a self, key: &[K]) -> Matches<'a, K, V> {
+        self.root.find(key)
+    }
+}
 
 trait PrefixExt<K> {
     fn add_prefix(&mut self, other: &[K]);
@@ -45,22 +98,22 @@ pub struct Node<K: KeyComponent, V> {
 }
 
 impl<K: KeyComponent, V> Node<K, V> {
-    pub fn new() -> Node<K, V> {
+    fn new() -> Node<K, V> {
         Node {
             value: None,
             edges: Vec::new(),
         }
     }
 
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         *self = Node::new();
     }
 
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.value.is_none() && self.edges.is_empty()
     }
 
-    pub fn get(&self, key: &[K]) -> Option<&V> {
+    fn get(&self, key: &[K]) -> Option<&V> {
         if key.is_empty() {
             self.value.as_ref()
         } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
@@ -70,7 +123,7 @@ impl<K: KeyComponent, V> Node<K, V> {
         }
     }
 
-    pub fn insert(&mut self, key: &[K], value: V) -> Option<V> {
+    fn insert(&mut self, key: &[K], value: V) -> Option<V> {
         if key.is_empty() {
             let mut value = Some(value);
             mem::swap(&mut self.value, &mut value);
@@ -102,11 +155,11 @@ impl<K: KeyComponent, V> Node<K, V> {
         }
     }
 
-    pub fn iter(&self) -> Iter<K, V> {
+    fn iter(&self) -> Iter<K, V> {
         Iter::new(self)
     }
 
-    pub fn remove(&mut self, key: &[K]) -> Option<V> {
+    fn remove(&mut self, key: &[K]) -> Option<V> {
         if key.is_empty() {
             self.value.take()
         } else if let Some((i, cmp)) = self.search_for_prefix(key) {
@@ -127,7 +180,7 @@ impl<K: KeyComponent, V> Node<K, V> {
         }
     }
 
-    pub fn find<'a>(&'a self, key: &[K]) -> Matches<'a, K, V> {
+    fn find<'a>(&'a self, key: &[K]) -> Matches<'a, K, V> {
         self.find_subtree(key, Vec::new())
     }
 
@@ -499,5 +552,30 @@ mod tests {
         let found: Vec<_> = tree.iter().map(|(k, _)| k).collect();
         let expected: Vec<&'static [u8]> = vec![b"a", b"b", b"c"];
         assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn it_tracks_the_number_of_elements_inserted() {
+        let mut t = Tree::new();
+        t.insert(b"foo", ());
+        t.insert(b"bar", ());
+        t.insert(b"baz", ());
+
+        assert_eq!(t.len(), 3);
+
+        t.clear();
+
+        assert_eq!(t.len(), 0);
+
+        t.insert(b"foo", ());
+        t.insert(b"foo", ());
+        t.insert(b"bar", ());
+
+        assert_eq!(t.len(), 2);
+
+        t.remove(b"bar");
+        t.remove(b"baz");
+
+        assert_eq!(t.len(), 1);
     }
 }
