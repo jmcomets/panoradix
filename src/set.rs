@@ -90,7 +90,7 @@ impl<K: Key + ?Sized> RadixSet<K> {
     /// assert_eq!(set.contains("b"), false);
     /// ```
     pub fn contains(&self, key: &K) -> bool {
-        self.map.get(key).is_some()
+        self.map.contains_key(key)
     }
 
     /// Returns `true` if the set contains no elements.

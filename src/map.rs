@@ -111,6 +111,29 @@ impl<K: Key + ?Sized, V> RadixMap<K, V> {
         self.tree.get(key.as_slice())
     }
 
+    /// Returns if the key was inserted in the map.
+    ///
+    /// Note: this is equivalent to calling `get(key).is_some()`
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixMap;
+    ///
+    /// let mut map = RadixMap::new();
+    /// map.insert("a", 1);
+    /// map.insert("b", 2);
+    /// assert!(map.contains_key("a"));
+    /// assert!(map.contains_key("b"));
+    /// assert!(!map.contains_key("c"));
+    /// ```
+    #[inline]
+    pub fn contains_key(&self, key: &K) -> bool {
+        self.get(key).is_some()
+    }
+
     /// Returns `true` if the map contains no elements.
     ///
     /// # Examples
