@@ -68,6 +68,25 @@ impl<K: Key + ?Sized, V> RadixMap<K, V> {
         self.tree.clear();
     }
 
+    /// Return the number of elements in the map.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixMap;
+    ///
+    /// let mut m = RadixMap::new();
+    /// m.insert("a", 1);
+    /// m.insert("b", 2);
+    /// m.insert("c", 3);
+    /// assert_eq!(m.len(), 3);
+    /// ```
+    pub fn len(&self) -> usize {
+        self.tree.len()
+    }
+
     /// Inserts a key-value pair into the map.
     ///
     /// If the map did not have this key present, `None` is returned.

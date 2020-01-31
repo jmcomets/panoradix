@@ -53,6 +53,25 @@ impl<K: Key + ?Sized> RadixSet<K> {
         self.map.clear();
     }
 
+    /// Return the number of elements in the set.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use panoradix::RadixSet;
+    ///
+    /// let mut s = RadixSet::new();
+    /// s.insert("a");
+    /// s.insert("b");
+    /// s.insert("c");
+    /// assert_eq!(s.len(), 3);
+    /// ```
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
+
     /// Inserts a key into the set.
     ///
     /// If the set did not have this key present, `true` is returned, otherwise `false` is
