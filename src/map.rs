@@ -111,6 +111,16 @@ impl<K: Key + ?Sized, V> RadixMap<K, V> {
         self.tree.get(key.as_slice())
     }
 
+    /// Returns a mutable reference to the value corresponding to the key.
+    /// map.insert("a", 0);
+    /// *map.get_mut("a").unwrap() += 1;
+    /// *map.get_mut("a").unwrap() += 1;
+    /// assert_eq!(map.get("a"), Some(&2));
+    /// ```
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+        self.tree.get_mut(key.as_slice())
+    }
+
     /// Returns if the key was inserted in the map.
     ///
     /// Note: this is equivalent to calling `get(key).is_some()`

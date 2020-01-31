@@ -70,6 +70,16 @@ impl<K: KeyComponent, V> Node<K, V> {
         }
     }
 
+    pub fn get_mut(&mut self, key: &[K]) -> Option<&mut V> {
+        if key.is_empty() {
+            self.value.as_mut()
+        } else if let Some((i, PrefixCmp::Full(suffix))) = self.search_for_prefix(key) {
+            self.edges[i].node.get_mut(&suffix)
+        } else {
+            None
+        }
+    }
+
     pub fn insert(&mut self, key: &[K], value: V) -> Option<V> {
         if key.is_empty() {
             let mut value = Some(value);
